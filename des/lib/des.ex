@@ -1,10 +1,10 @@
 defmodule DES do
+  @block_size_bytes 8
+  # @key_size_bytes 7
+
   require System
   require IO
   require String
-
-  #block_size_bytes = 8
-  #key_size_bytes = 7
 
   defp parse_input() do
     if length(System.argv) == 3 do
@@ -36,20 +36,28 @@ defmodule DES do
     plain
   end
 
-  def encrypt_file(_plain) do
-    IO.puts "Encrypting..."
-    "Encrypted"
+  defp write_to(file_path, content) do
+    File.write file_path, content
+    IO.puts "Result saved to file '#{file_path}'..."
   end
 
-  def decrypt_file(_cyphered) do
+  def encrypt_file(plain) do
+    IO.puts "Encrypting..."
+
+    plain
+  end
+
+  def decrypt_file(cyphered) do
     IO.puts "Decrypting..."
-    "Decrypted"
+
+    cyphered
   end
 
   def main() do
-    {operation, in_file, _out_file} = parse_input()
+    {operation, in_file, out_file} = parse_input()
 
-    text = read_file in_file
+    text = (read_file in_file) |> to_charlist
+    blocks = Enum.chunk_every text, @block_size_bytes
 
     process_function = fn
       text when operation == :enc ->
@@ -58,8 +66,8 @@ defmodule DES do
         decrypt_file text
     end
 
-    result = process_function.(text)
-    IO.puts result
+    result = process_function.(blocks) |> Enum.join
+    write_to out_file, result
   end
 end
 
