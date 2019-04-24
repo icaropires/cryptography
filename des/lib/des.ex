@@ -67,23 +67,29 @@ defmodule DES do
   """
   def encrypt_blocks(plain, n\\0) do
     if n > 5 do
+      IO.puts("42424242")
       IO.inspect(plain)
+      IO.puts("42424242")
       {:ok, file} = File.open("newfile")
-      IO.write(file, plain)
+      File.write("aisim", to_string(plain))
       plain 
     else
       IO.puts "Encrypting..."
 
-      list = String.trim(List.to_string(to_charlist(plain)))
-      IO.inspect(list)
+      IO.inspect(plain)
+      list = (List.to_string(to_charlist(plain)))
 
       left = String.slice(list, 0..(div(String.length(list),2)-1))
       right = String.slice(list, (div(String.length(list),2))..-1)
 
-      c = for {x, y} <- (Enum.zip to_charlist(left), to_charlist(right)), do: x ^^^ y 
-      c = Enum.map(c, fn x -> x + 42 end )
+      right1 = Enum.map(to_charlist(right), fn x -> x + 3 end )
+      c = for {x, y} <- (Enum.zip to_charlist(left), to_charlist(right1)), do: x ^^^ y 
+      IO.inspect(c)
 
       list = to_charlist(right) ++ c
+      IO.puts("--------------------")
+      IO.inspect(list)
+      IO.puts("--------------------")
       encrypt_blocks(list , n + 1)
     end
   end
@@ -93,25 +99,38 @@ defmodule DES do
   """
   def decrypt_blocks(cyphered, n \\ 0) do
     if n > 6 do
+      list = (List.to_string(to_charlist(cyphered)))
+      left = String.slice(list, 0..(div(String.length(list),2)-1))
+      right = String.slice(list, (div(String.length(list),2))..-1)
+      list = to_charlist(right) ++ to_charlist(left)
+
+
+      File.write("aisimd", to_string(list))
       cyphered 
     else
       IO.puts "Decrypting..."
       if n == 0 do
-        list = String.trim(List.to_string(to_charlist(cyphered)))
+        list = (List.to_string(to_charlist(cyphered)))
+        IO.inspect(list)
         left = String.slice(list, 0..(div(String.length(list),2)-1))
         right = String.slice(list, (div(String.length(list),2))..-1)
         list = to_charlist(right) ++ to_charlist(left)
         decrypt_blocks(list, n+ 1)
       else
-        list = String.trim(List.to_string(to_charlist(cyphered)))
+        list = (List.to_string(to_charlist(cyphered)))
+        IO.inspect(list)
 
         left = String.slice(list, 0..(div(String.length(list),2)-1))
         right = String.slice(list, (div(String.length(list),2))..-1)
 
-        c = for {x, y} <- (Enum.zip to_charlist(left), to_charlist(right)), do: x ^^^ y 
-        c = Enum.map(c, fn x -> x + 42 end )
+        right1 = Enum.map(to_charlist(right), fn x -> x + 3 end )
+        c = for {x, y} <- (Enum.zip to_charlist(left), to_charlist(right1)), do: x ^^^ y 
+        #c = Enum.map(c, fn x -> x + 42 end )
 
-        list = to_charlist(right) ++ c
+        list = to_charlist(right)  ++ c
+        IO.puts("============")
+        IO.inspect(list)
+        IO.puts("============")
         decrypt_blocks(list , n + 1)
       end
     end
