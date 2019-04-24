@@ -62,78 +62,68 @@ defmodule DES do
     IO.puts "Result saved to file '#{file_path}'..."
   end
 
+  defp split_block(block) do
+    block_items = (List.to_string(to_charlist(block)))
+    left = String.slice(block_items, 0..(div(String.length(block_items),2)-1)) |> to_charlist
+    right = String.slice(block_items, (div(String.length(block_items),2))..-1) |> to_charlist
+    {left, right}
+  end
+
   @doc """
-  Encrypt the given plain text, which must be a an list of blocks
+  Permutation stage of the algorithm
   """
-  def encrypt_blocks(plain, n\\0) do
-    if n > 5 do
-      IO.puts("42424242")
-      IO.inspect(plain)
-      IO.puts("42424242")
-      {:ok, file} = File.open("newfile")
-      File.write("aisim", to_string(plain))
-      plain 
+  defp permutate(block) do
+    {left, right} = split_block(block)
+    right ++ left
+  end
+
+  @doc """
+  Substitution stage of the algorithm
+  """
+  defp substitute(left, right) do
+    for {x, y} <- (Enum.zip left, round_function(right, 42)), do: x ^^^ y 
+  end
+
+  defp round_function(right, key) do
+    Enum.map(right, fn x -> x + key end )
+  end
+
+  def encrypt_block(block, n \\ 0) do
+    IO.puts "Encrypting..."
+    if n > 16 do
+      permutate block
     else
-      IO.puts "Encrypting..."
-
-      IO.inspect(plain)
-      list = (List.to_string(to_charlist(plain)))
-
-      left = String.slice(list, 0..(div(String.length(list),2)-1))
-      right = String.slice(list, (div(String.length(list),2))..-1)
-
-      right1 = Enum.map(to_charlist(right), fn x -> x + 3 end )
-      c = for {x, y} <- (Enum.zip to_charlist(left), to_charlist(right1)), do: x ^^^ y 
-      IO.inspect(c)
-
-      list = to_charlist(right) ++ c
-      IO.puts("--------------------")
-      IO.inspect(list)
-      IO.puts("--------------------")
-      encrypt_blocks(list , n + 1)
+      {left, right} = split_block(block)
+      left = substitute left, right
+      block = right ++ left 
+      encrypt_block(block, n + 1)
     end
   end
 
   @doc """
-  Descrypt the given plain text, which must be a an list of blocks
+  Encrypt the given plain text, which must be a an list of blocks
+  """
+  def encrypt_blocks(plain, n \\ 0) do
+    Enum.map(plain, &encrypt_block/1)
+  end
+
+  def decrypt_block(block, n \\ 0) do
+    IO.puts "Decrypting..."
+    if n > 16 do
+      permutate block
+    else
+      {left, right} = split_block(block)
+      left = substitute left, right
+      block = right ++ left
+      decrypt_block(block, n + 1)
+    end
+  end
+
+  @doc """
+  Descrypt the given plain text, which must be a list of blocks
   """
   def decrypt_blocks(cyphered, n \\ 0) do
-    if n > 6 do
-      list = (List.to_string(to_charlist(cyphered)))
-      left = String.slice(list, 0..(div(String.length(list),2)-1))
-      right = String.slice(list, (div(String.length(list),2))..-1)
-      list = to_charlist(right) ++ to_charlist(left)
-
-
-      File.write("aisimd", to_string(list))
-      cyphered 
-    else
-      IO.puts "Decrypting..."
-      if n == 0 do
-        list = (List.to_string(to_charlist(cyphered)))
-        IO.inspect(list)
-        left = String.slice(list, 0..(div(String.length(list),2)-1))
-        right = String.slice(list, (div(String.length(list),2))..-1)
-        list = to_charlist(right) ++ to_charlist(left)
-        decrypt_blocks(list, n+ 1)
-      else
-        list = (List.to_string(to_charlist(cyphered)))
-        IO.inspect(list)
-
-        left = String.slice(list, 0..(div(String.length(list),2)-1))
-        right = String.slice(list, (div(String.length(list),2))..-1)
-
-        right1 = Enum.map(to_charlist(right), fn x -> x + 3 end )
-        c = for {x, y} <- (Enum.zip to_charlist(left), to_charlist(right1)), do: x ^^^ y 
-        #c = Enum.map(c, fn x -> x + 42 end )
-
-        list = to_charlist(right)  ++ c
-        IO.puts("============")
-        IO.inspect(list)
-        IO.puts("============")
-        decrypt_blocks(list , n + 1)
-      end
-    end
+    Enum.map(cyphered, &decrypt_block/1)
   end
 
   @doc """
@@ -142,8 +132,9 @@ defmodule DES do
   def main() do
     {operation, in_file, out_file} = parse_input()
 
-    text = (read_file in_file) |> to_charlist
-    blocks = Enum.chunk_every text, @block_size_bytes
+    text = (read_file in_file) |> String.trim("\n") |> to_charlist
+    blocks = Enum.chunk_every text, @block_size_bytes, @block_size_bytes, List.duplicate(32, 8) 
+    IO.puts(tl blocks)
 
     process_function = fn
       text when operation == :enc ->
