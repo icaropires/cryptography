@@ -20,6 +20,7 @@ defmodule DES do
   require System
   require IO
   require String
+  use Bitwise
 
   # Parse argv inputs to make sure user called the module right. Exits on fail
   defp parse_input() do
@@ -64,19 +65,56 @@ defmodule DES do
   @doc """
   Encrypt the given plain text, which must be a an list of blocks
   """
-  def encrypt_blocks(plain) do
-    IO.puts "Encrypting..."
+  def encrypt_blocks(plain, n\\0) do
+    if n > 5 do
+      IO.inspect(plain)
+      {:ok, file} = File.open("newfile")
+      IO.write(file, plain)
+      plain 
+    else
+      IO.puts "Encrypting..."
 
-    plain
+      list = String.trim(List.to_string(to_charlist(plain)))
+      IO.inspect(list)
+
+      left = String.slice(list, 0..(div(String.length(list),2)-1))
+      right = String.slice(list, (div(String.length(list),2))..-1)
+
+      c = for {x, y} <- (Enum.zip to_charlist(left), to_charlist(right)), do: x ^^^ y 
+      c = Enum.map(c, fn x -> x + 42 end )
+
+      list = to_charlist(right) ++ c
+      encrypt_blocks(list , n + 1)
+    end
   end
 
   @doc """
   Descrypt the given plain text, which must be a an list of blocks
   """
-  def decrypt_blocks(cyphered) do
-    IO.puts "Decrypting..."
+  def decrypt_blocks(cyphered, n \\ 0) do
+    if n > 6 do
+      cyphered 
+    else
+      IO.puts "Decrypting..."
+      if n == 0 do
+        list = String.trim(List.to_string(to_charlist(cyphered)))
+        left = String.slice(list, 0..(div(String.length(list),2)-1))
+        right = String.slice(list, (div(String.length(list),2))..-1)
+        list = to_charlist(right) ++ to_charlist(left)
+        decrypt_blocks(list, n+ 1)
+      else
+        list = String.trim(List.to_string(to_charlist(cyphered)))
 
-    cyphered
+        left = String.slice(list, 0..(div(String.length(list),2)-1))
+        right = String.slice(list, (div(String.length(list),2))..-1)
+
+        c = for {x, y} <- (Enum.zip to_charlist(left), to_charlist(right)), do: x ^^^ y 
+        c = Enum.map(c, fn x -> x + 42 end )
+
+        list = to_charlist(right) ++ c
+        decrypt_blocks(list , n + 1)
+      end
+    end
   end
 
   @doc """
