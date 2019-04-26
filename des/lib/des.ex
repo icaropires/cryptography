@@ -16,8 +16,6 @@ defmodule DES do
 
   @block_size_bytes 8
   @num_rounds 16
- 
-  # @key_size_bytes 7
 
   @cp_1 [
     57, 49, 41, 33, 25, 17, 9,
@@ -71,6 +69,7 @@ defmodule DES do
   use Bitwise
 
   # Parse argv inputs to make sure user called the module right. Exits on fail
+  @spec parse_input() :: {atom(), String.t(), String.t()}
   defp parse_input() do
     if length(System.argv) == 3 do
       [operation, in_file, out_file]  = System.argv
@@ -93,34 +92,37 @@ defmodule DES do
     end
   end
 
+  @spec expansion([integer()]) :: [integer()]
   defp expansion(block) do
     permute block, @e
   end
 
+  @spec generate_keys([integer()]) :: [integer()]
   defp generate_keys(key) do
     k = permute(key, @cp_1, false)
     left = Enum.slice(k,0..27)
     right = Enum.slice(k,28..56)
-    IO.puts(left)
-    IO.puts(right)
     keys = for {s, index} <- (Enum.with_index @shift_order), do: shift(left, Enum.at(@shift_order, index)) ++ shift(right, Enum.at(@shift_order, index))
     a = Enum.map(keys, fn x -> Enum.map(Enum.chunk_every(x, @block_size_bytes), fn t -> String.to_integer(Enum.join(t),2) end) end)
     a
-
   end
+
+  @spec shift([String.t()], integer()) :: [integer()]
   defp shift(block, shift_size) do
     Enum.slice(block,shift_size..28) ++ Enum.slice(block,0..(shift_size-1))
   end
 
-
+  @spec to_binary_list_string(charlist()) :: [String.t()]
   defp to_binary_list_string(block) do
     Enum.map(block, fn x -> Integer.to_string(x, 2) |> String.pad_leading(@block_size_bytes,"0") end)
   end
 
+  @spec to_binary_string(charlist()) :: [String.t()]
   defp to_binary_string(block) do
     to_binary_list_string(block) |> Enum.join |> String.graphemes
   end
 
+  @spec permute(charlist(), [integer()]) :: [integer()]
   defp permute(block, table, to_integer \\ true) do
     binary_string = to_binary_string block
     permuted = Enum.map(table, fn x -> Enum.at(binary_string, x - 1) end)
@@ -131,15 +133,18 @@ defmodule DES do
     end
   end
 
+  @spec initial_permutation(charlist()) :: [integer()]
   defp initial_permutation(block) do
     permute block, @pi
   end
 
+  @spec final_permutation([integer()]) :: [integer()]
   defp final_permutation(block) do
     permute block, @pi_1
   end
 
   # Read a file, given a path, show content on stdout and return it
+  @spec read_file(String.t()) :: String.t()
   defp read_file(file_path) do
     text = File.read!file_path |> String.trim
 
@@ -151,11 +156,13 @@ defmodule DES do
   end
 
   # Write a content to a file
+  @spec write_to(String.t(), String.t()) :: atom()
   defp write_to(file_path, content) do
     File.write file_path, content
     IO.puts "Result saved to file '#{file_path}'..."
   end
 
+  @spec split_block([integer()]) :: {[integer()], [integer()]}
   defp split_block(block) do
     half = div (length block), 2
     [left, right] = Enum.chunk_every block, half
@@ -164,11 +171,12 @@ defmodule DES do
   end
 
   # Substitution stage of the algorithm
+  @spec xor([integer()], [integer()]) :: [integer()]
   defp xor(key, right_e) do
     for {x, y} <- (Enum.zip key, right_e), do: x ^^^ y 
   end
 
-
+  @spec encrypt_block([integer()], integer()) :: [integer()]
   defp encrypt_block(block, keys \\ '', n \\ 0)
 
   defp encrypt_block(block, keys, n) when n == 0 do
@@ -206,10 +214,12 @@ defmodule DES do
   end
 
   # Encrypt the given plain text, which must be a an list of blocks
+  @spec encrypt_blocks([integer()]) :: [[integer()]]
   defp encrypt_blocks(plain) do
     Enum.map(plain, &encrypt_block/1)
   end
 
+  @spec decrypt_block([integer()], [integer()], integer()) :: [integer()]
   defp decrypt_block(block, keys \\ '', n \\ 0)
 
   defp decrypt_block(block, keys, n) when n == 0 do
@@ -246,6 +256,7 @@ defmodule DES do
     decrypt_block(block, keys, n + 1)
   end
 
+  @spec split_blocks([integer()]) :: [[integer()]]
   defp split_blocks(text) do
     leftover = List.duplicate (hd ' '), @block_size_bytes
     Enum.chunk_every text, @block_size_bytes, @block_size_bytes, leftover
@@ -256,11 +267,13 @@ defmodule DES do
     Enum.map(cyphered, &decrypt_block/1)
   end
 
+  @spec encrypt([integer()]) :: String.t()
   def encrypt(plain) do
     IO.puts "Encrypting..."
     split_blocks(plain) |> encrypt_blocks |> Enum.join
   end
 
+  @spec decrypt([integer()]) :: String.t()
   def decrypt(plain) do
     IO.puts "Decrypting..."
     split_blocks(plain) |> decrypt_blocks |> Enum.join
@@ -269,6 +282,7 @@ defmodule DES do
   @doc """
   Used for calling the module as an stand-alone file
   """
+  @spec main() :: atom()
   def main() do
     {operation, in_file, out_file} = parse_input()
     text = read_file(in_file) |> String.trim |> to_charlist
@@ -281,7 +295,8 @@ defmodule DES do
     end
 
     write_to(out_file, process_function.(text))
+    :ok
   end
 end
 
-DES.main()
+# DES.main()
