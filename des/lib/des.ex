@@ -145,9 +145,8 @@ defmodule DES do
   end
 
   defp split_block(block) do
-    block_items = (to_charlist block) |> List.to_string
-    left = String.slice(block_items, 0..(div(String.length(block_items),2)-1)) |> to_charlist
-    right = String.slice(block_items, (div(String.length(block_items),2))..-1) |> to_charlist
+    half = div (length block), 2
+    [left, right] = Enum.chunk_every block, half
 
     {left, right}
   end
