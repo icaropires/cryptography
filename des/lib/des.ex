@@ -93,16 +93,25 @@ defmodule DES do
     end
   end
 
+  defp expansion(block) do
+    permute block, @e
+  end
+
   defp generate_keys(key) do
-    k = permute(key, @cp_1)
-    {left, right} = split_block(k)
+    k = permute(key, @cp_1, false)
+    left = Enum.slice(k,0..27)
+    right = Enum.slice(k,28..56)
+    IO.puts(left)
+    IO.puts(right)
+    keys = for {s, index} <- (Enum.with_index @shift_order), do: shift(left, Enum.at(@shift_order, index)) ++ shift(right, Enum.at(@shift_order, index))
+    a = Enum.map(keys, fn x -> Enum.map(Enum.chunk_every(x, @block_size_bytes), fn t -> String.to_integer(Enum.join(t),2) end) end)
+    a
 
-    {left, right}
+  end
+  defp shift(block, shift_size) do
+    Enum.slice(block,shift_size..28) ++ Enum.slice(block,0..(shift_size-1))
   end
 
-  defp expansion(key) do
-    permute(key, @e)
-  end
 
   defp to_binary_list_string(block) do
     Enum.map(block, fn x -> Integer.to_string(x, 2) |> String.pad_leading(@block_size_bytes,"0") end)
@@ -112,11 +121,14 @@ defmodule DES do
     to_binary_list_string(block) |> Enum.join |> String.graphemes
   end
 
-  defp permute(block, table) do
+  defp permute(block, table, to_integer \\ true) do
     binary_string = to_binary_string block
     permuted = Enum.map(table, fn x -> Enum.at(binary_string, x - 1) end)
-
-    Enum.map(Enum.chunk_every(permuted, @block_size_bytes), fn x -> String.to_integer(Enum.join(x),2) end)
+    if to_integer do
+      Enum.map(Enum.chunk_every(permuted, @block_size_bytes), fn x -> String.to_integer(Enum.join(x),2) end)
+    else
+      permuted
+    end
   end
 
   defp initial_permutation(block) do
@@ -152,36 +164,41 @@ defmodule DES do
   end
 
   # Substitution stage of the algorithm
-  defp substitute(left, right) do
-    for {x, y} <- (Enum.zip left, round_function(right, 42)), do: x ^^^ y 
+  defp xor(key, right_e) do
+    for {x, y} <- (Enum.zip key, right_e), do: x ^^^ y 
   end
 
-  defp round_function(right, key) do
-    Enum.map(right, fn x -> x + key end)
-  end
 
-  defp encrypt_block(block, n \\ 0)
+  defp encrypt_block(block, keys \\ '', n \\ 0)
 
-  defp encrypt_block(block, n) when n == 0 do
+  defp encrypt_block(block, keys, n) when n == 0 do
+    keys = generate_keys('12345678')
     block = initial_permutation block
 
     {left, right} = split_block(block)
-    left = substitute left, right
-    block = right ++ left 
-
-    encrypt_block(block, n + 1)
+    d_e = expansion(right)
+    tmp = xor Enum.at(keys, n), d_e
+    tmp = xor right, tmp
+    left = right 
+    right = tmp
+    block = left ++ right
+    encrypt_block(block, keys, n + 1)
   end
 
-  defp encrypt_block(block, n) when n == @num_rounds do
+  defp encrypt_block(block, keys, n) when n == @num_rounds do
     final_permutation block
   end
 
-  defp encrypt_block(block, n) do
+  defp encrypt_block(block, keys, n) do
     {left, right} = split_block(block)
-    left = substitute left, right
-    block = right ++ left 
-
-    encrypt_block(block, n + 1)
+    d_e = expansion(right)
+    
+    tmp = xor Enum.at(keys, n), d_e
+    tmp = xor right, tmp
+    left = right 
+    right = tmp
+    block = left ++ right
+    encrypt_block(block, keys, n + 1)
   end
 
   # Encrypt the given plain text, which must be a an list of blocks
@@ -189,28 +206,39 @@ defmodule DES do
     Enum.map(plain, &encrypt_block/1)
   end
 
-  defp decrypt_block(block, n \\ 0)
+  defp decrypt_block(block, keys \\ '', n \\ 0)
 
-  defp decrypt_block(block, n) when n == 0 do
+  defp decrypt_block(block, keys, n) when n == 0 do
+    keys = generate_keys('12345678')
     block =  initial_permutation block
-
     {left, right} = split_block(block)
-    left = substitute left, right
-    block = right ++ left
-
-    decrypt_block(block, n + 1)
+    d_e = expansion(right)
+    
+    tmp = xor Enum.at(keys, 15-n), d_e
+    tmp = xor right, tmp
+    left = right 
+    right = tmp
+    block = left ++ right
+    decrypt_block(block, keys, n + 1)
   end
 
-  defp decrypt_block(block, n) when n == @num_rounds do
+  defp decrypt_block(block, keys, n) when n == @num_rounds do
     final_permutation block
   end
 
-  defp decrypt_block(block, n) do
+  defp decrypt_block(block, keys, n) do
+    IO.puts "================="
+    IO.puts n
+    IO.puts "================="
     {left, right} = split_block(block)
-    left = substitute left, right
-    block = right ++ left
-
-    decrypt_block(block, n + 1)
+    d_e = expansion(right)
+    
+    tmp = xor Enum.at(keys, 15-n), d_e
+    tmp = xor right, tmp
+    left = right 
+    right = tmp
+    block = left ++ right
+    decrypt_block(block, keys, n + 1)
   end
 
   defp split_blocks(text) do
