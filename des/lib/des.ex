@@ -178,15 +178,19 @@ defmodule DES do
     {left, right} = split_block(block)
     d_e = expansion(right)
     tmp = xor Enum.at(keys, n), d_e
-    tmp = xor right, tmp
+    tmp = xor left, tmp
     left = right 
     right = tmp
-    block = left ++ right
+    block = left ++ right 
     encrypt_block(block, keys, n + 1)
   end
 
   defp encrypt_block(block, keys, n) when n == @num_rounds do
-    final_permutation block
+    {left, right} = split_block(block)
+    IO.puts "+================"
+    IO.puts (length block)
+    IO.puts "+================"
+    final_permutation (right ++ left) 
   end
 
   defp encrypt_block(block, keys, n) do
@@ -194,7 +198,7 @@ defmodule DES do
     d_e = expansion(right)
     
     tmp = xor Enum.at(keys, n), d_e
-    tmp = xor right, tmp
+    tmp = xor left, tmp
     left = right 
     right = tmp
     block = left ++ right
@@ -215,7 +219,7 @@ defmodule DES do
     d_e = expansion(right)
     
     tmp = xor Enum.at(keys, 15-n), d_e
-    tmp = xor right, tmp
+    tmp = xor left, tmp
     left = right 
     right = tmp
     block = left ++ right
@@ -223,7 +227,8 @@ defmodule DES do
   end
 
   defp decrypt_block(block, keys, n) when n == @num_rounds do
-    final_permutation block
+    {left, right} = split_block(block)
+    final_permutation (right ++ left) 
   end
 
   defp decrypt_block(block, keys, n) do
@@ -234,7 +239,7 @@ defmodule DES do
     d_e = expansion(right)
     
     tmp = xor Enum.at(keys, 15-n), d_e
-    tmp = xor right, tmp
+    tmp = xor left, tmp
     left = right 
     right = tmp
     block = left ++ right
