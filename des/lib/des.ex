@@ -171,7 +171,7 @@ defmodule DES do
   defp shifts(list, left, right, index) do
     left = shift(left, Enum.at(@shift_order, index)) 
     right = shift(right, Enum.at(@shift_order, index)) 
-    list = list ++ [left ++ right]
+    list = list ++ [Enum.map(@cp_2, fn x -> Enum.at((left++right), x - 1) end)]
     shifts(list, left, right, index + 1)
 
   end
@@ -183,10 +183,9 @@ defmodule DES do
     left = Enum.slice(k,0..27)
     right = Enum.slice(k,28..56)
     keys = shifts(list, left, right) 
-    IO.puts(length keys)
-    h = Enum.map(keys, fn i -> Enum.map(@cp_2, fn x -> Enum.at(i, x - 1) end)end)
-
-    Enum.map(h, fn x -> Enum.map(Enum.chunk_every(x, @block_size_bytes), fn t -> String.to_integer(Enum.join(t),2) end) end)
+    IO.puts(keys)
+    o = Enum.map(keys, fn x -> Enum.map(Enum.chunk_every(x, @block_size_bytes), fn t -> String.to_integer(Enum.join(t),2) end) end)
+    o
   end
 
   @spec shift([String.t()], integer()) :: [integer()]
@@ -213,6 +212,18 @@ defmodule DES do
     else
       permuted
     end
+  end
+
+  defp substitute(block) do 
+    binary_string = to_binary_string block
+    IO.puts(binary_string)
+    blocks = Enum.chunk_every(binary_string, 6)
+    #IO.inspect blocks
+    edges = for i <- blocks, do: [Enum.at(i, 0), Enum.at(i, 5)] |> Enum.join |> String.to_integer(2)
+    middles = for k <- blocks, do: Enum.slice(k, 1..4) |> Enum.join |> String.to_integer(2) 
+    a = for index <- 0..7, do: Enum.at(@s_box, index) |> Enum.at(Enum.at(edges, index)) |> Enum.at(Enum.at(middles, index))
+    IO.puts("=======================")
+    a
   end
 
   @spec initial_permutation(charlist()) :: [integer()]
@@ -269,6 +280,8 @@ defmodule DES do
     d_e = expansion(right)
     tmp = xor Enum.at(keys, n), d_e
     #tmp = permute tmp, @p
+    #tmp = substitute(tmp)
+    IO.inspect(tmp)
     tmp = xor left, tmp
     left = right 
     right = tmp
@@ -287,6 +300,8 @@ defmodule DES do
     
     tmp = xor Enum.at(keys, n), d_e
     #tmp = permute tmp, @p
+    #tmp = substitute(tmp)
+    IO.inspect(tmp)
     tmp = xor left, tmp
     left = right 
     right = tmp
@@ -331,6 +346,7 @@ defmodule DES do
     d_e = expansion(right)
     
     tmp = xor Enum.at(keys, 15-n), d_e
+    
     #tmp = permute tmp, @p
     tmp = xor left, tmp
     left = right 
@@ -382,4 +398,4 @@ defmodule DES do
   end
 end
 
-# DES.main()
+DES.main()
