@@ -13,7 +13,10 @@ defmodule Euclides do
 
   @spec multiply(integer(), integer()) :: integer()
   def multiply(a, b) do
-    a ^^^ b
+    Enum.reduce(
+      (for i <- 7..0, do: if ((1 <<< i &&& b) != 0), do: a <<< i, else: 0),
+      (fn x, y -> x ^^^ y end)
+    )
   end
 
   @spec divide(integer(), integer()) :: integer()
