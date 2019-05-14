@@ -10,6 +10,14 @@ func getEmptyBlock() []byte {
 	return make([]byte, BLOCK_SIZE)
 }
 
+func expandKeyEncrypt([]byte) []uint32 {
+	return []uint32{}
+}
+
+func expandKeyDecrypt([]byte) []uint32 {
+	return []uint32{}
+}
+
 func Encrypt(plaintext []byte) []byte {
 	return []byte("")
 }
