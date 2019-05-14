@@ -183,9 +183,7 @@ defmodule DES do
     left = Enum.slice(k,0..27)
     right = Enum.slice(k,28..56)
     keys = shifts(list, left, right) 
-    IO.puts(keys)
-    o = Enum.map(keys, fn x -> Enum.map(Enum.chunk_every(x, @block_size_bytes), fn t -> String.to_integer(Enum.join(t),2) end) end)
-    o
+    Enum.map(keys, fn x -> Enum.map(Enum.chunk_every(x, @block_size_bytes), fn t -> String.to_integer(Enum.join(t),2) end) end)
   end
 
   @spec shift([String.t()], integer()) :: [integer()]
@@ -194,13 +192,13 @@ defmodule DES do
   end
 
   @spec to_binary_list_string(charlist()) :: [String.t()]
-  defp to_binary_list_string(block) do
-    Enum.map(block, fn x -> Integer.to_string(x, 2) |> String.pad_leading(@block_size_bytes,"0") end)
+  defp to_binary_list_string(block, pad_leading \\ @block_size_bytes) do
+    Enum.map(block, fn x -> Integer.to_string(x, 2) |> String.pad_leading(pad_leading, "0") end)
   end
 
   @spec to_binary_string(charlist()) :: [String.t()]
-  defp to_binary_string(block) do
-    to_binary_list_string(block) |> Enum.join |> String.graphemes
+  defp to_binary_string(block, pad_leading \\ @block_size_bytes) do
+    to_binary_list_string(block, pad_leading) |> Enum.join |> String.graphemes
   end
 
   @spec permute(charlist(), [integer()]) :: [integer()]
@@ -216,14 +214,12 @@ defmodule DES do
 
   defp substitute(block) do 
     binary_string = to_binary_string block
-    IO.puts(binary_string)
     blocks = Enum.chunk_every(binary_string, 6)
-    #IO.inspect blocks
     edges = for i <- blocks, do: [Enum.at(i, 0), Enum.at(i, 5)] |> Enum.join |> String.to_integer(2)
     middles = for k <- blocks, do: Enum.slice(k, 1..4) |> Enum.join |> String.to_integer(2) 
-    a = for index <- 0..7, do: Enum.at(@s_box, index) |> Enum.at(Enum.at(edges, index)) |> Enum.at(Enum.at(middles, index))
-    IO.puts("=======================")
-    a
+    result = for index <- 0..7, do: Enum.at(@s_box, index) |> Enum.at(Enum.at(edges, index)) |> Enum.at(Enum.at(middles, index))
+    bin_result = to_binary_string result, 4
+    (Enum.map(Enum.chunk_every(bin_result, @block_size_bytes), fn x -> String.to_integer(Enum.join(x),2) end))
   end
 
   @spec initial_permutation(charlist()) :: [integer()]
@@ -278,11 +274,12 @@ defmodule DES do
 
     {left, right} = split_block(block)
     d_e = expansion(right)
+
     tmp = xor Enum.at(keys, n), d_e
-    #tmp = permute tmp, @p
-    #tmp = substitute(tmp)
-    IO.inspect(tmp)
+    tmp = substitute(tmp)
+    tmp = permute tmp, @p
     tmp = xor left, tmp
+
     left = right 
     right = tmp
     block = left ++ right 
@@ -291,6 +288,7 @@ defmodule DES do
 
   defp encrypt_block(block, keys, n) when n == @num_rounds do
     {left, right} = split_block(block)
+    IO.inspect final_permutation (right ++ left) 
     final_permutation (right ++ left) 
   end
 
@@ -299,9 +297,9 @@ defmodule DES do
     d_e = expansion(right)
     
     tmp = xor Enum.at(keys, n), d_e
-    #tmp = permute tmp, @p
-    #tmp = substitute(tmp)
-    IO.inspect(tmp)
+    tmp = substitute(tmp)
+    tmp = permute tmp, @p
+
     tmp = xor left, tmp
     left = right 
     right = tmp
@@ -325,7 +323,8 @@ defmodule DES do
     d_e = expansion(right)
     
     tmp = xor Enum.at(keys, 15-n), d_e
-    #tmp = permute tmp, @p
+    tmp = substitute(tmp)
+    tmp = permute tmp, @p
     tmp = xor left, tmp
     left = right 
     right = tmp
@@ -339,15 +338,13 @@ defmodule DES do
   end
 
   defp decrypt_block(block, keys, n) do
-    IO.puts "================="
-    IO.puts n
-    IO.puts "================="
     {left, right} = split_block(block)
     d_e = expansion(right)
     
     tmp = xor Enum.at(keys, 15-n), d_e
     
-    #tmp = permute tmp, @p
+    tmp = substitute(tmp)
+    tmp = permute tmp, @p
     tmp = xor left, tmp
     left = right 
     right = tmp
