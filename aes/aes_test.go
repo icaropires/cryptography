@@ -6,6 +6,24 @@ import (
 	"testing"
 )
 
+func TestSubWordByte(t *testing.T) {
+	var sbox_value_right byte = 0x5d
+	sbox_value_candidate := subWordByte(0x8d)
+
+	if sbox_value_right != sbox_value_candidate {
+		t.Errorf("Wrong subWordByte %v != %v", sbox_value_right, sbox_value_candidate)
+	}
+}
+
+func TestSubWord(t *testing.T) {
+	subword_right := uint32(0x5da515d2)
+	subword_candidate := subWord(0x8d292f7f)
+
+	if subword_right != subword_candidate {
+		t.Errorf("Wrong subWord %v != %v", subword_right, subword_candidate)
+	}
+}
+
 func TestKeyExpansionEncrypt(t *testing.T) {
 	key := getEmptyBlock()
 	key_candidate_int := []uint32(expandKeyEncrypt(key))
