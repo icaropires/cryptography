@@ -54,6 +54,19 @@ func copyToState(block []byte) [][]byte {
 	return state
 }
 
+func copyFromState(state [][]byte) []byte {
+	block := make([]byte, BLOCK_SIZE_BYTES)
+
+	nb := (len(block) * BYTE_SIZE_BITS) / 32
+	for r := 0; r < STATE_SIZE_ROWS; r++ {
+		for c := 0; c < nb; c++ {
+			block[r+STATE_SIZE_ROWS*c] = state[r][c]
+		}
+	}
+
+	return block
+}
+
 func rotWord(word uint32) uint32 {
 	return word<<BYTE_SIZE_BITS | word>>(WORD_SIZE_BYTES-BYTE_SIZE_BITS)
 }
@@ -94,7 +107,6 @@ func shiftRows(state [][]byte) [][]byte {
 	return state
 }
 
-
 func expandKeyEncrypt(words []uint32, key []byte) []uint32 {
 	for i := uint32(0); i < KEY_SIZE_BYTES; i++ {
 		count := uint32(0)
@@ -117,37 +129,36 @@ func expandKeyEncrypt(words []uint32, key []byte) []uint32 {
 	return words
 }
 
-
 func xtime(value byte) byte {
-  if value & 0x80 != 0 {
-    return (((value << 1) ^ 0x1B) & 0xFF)
-  }
-  return (value << 1)
+	if value&0x80 != 0 {
+		return (((value << 1) ^ 0x1B) & 0xFF)
+	}
+	return (value << 1)
 }
 
-func mixColumns(state [][]byte) [][]byte{
-    newState := make([][]byte, STATE_SIZE_ROWS)
-    for i := 0; i < STATE_SIZE_ROWS; i++ {
-      newState[i] = make([]byte, STATE_SIZE_ROWS)
-    }
-    for i := uint32(0); i < STATE_SIZE_ROWS; i++ {
-      newState[0][i] = xtime(state[0][i]) ^ (state[1][i] ^ xtime(state[1][i])) ^ state[2][i] ^ state[3][i]
-      newState[1][i] = state[0][i] ^ xtime(state[1][i]) ^ (state[2][i] ^ xtime(state[2][i])) ^ state[3][i]
-      newState[2][i] = state[0][i] ^ state[1][i] ^ xtime(state[2][i]) ^ (state[3][i] ^ xtime(state[3][i]))
-      newState[3][i] = (state[0][i] ^ xtime(state[0][i])) ^ state[1][i] ^ state[2][i] ^ xtime(state[3][i])
-    }
-    return newState
+func mixColumns(state [][]byte) [][]byte {
+	newState := make([][]byte, STATE_SIZE_ROWS)
+	for i := 0; i < STATE_SIZE_ROWS; i++ {
+		newState[i] = make([]byte, STATE_SIZE_ROWS)
+	}
+	for i := uint32(0); i < STATE_SIZE_ROWS; i++ {
+		newState[0][i] = xtime(state[0][i]) ^ (state[1][i] ^ xtime(state[1][i])) ^ state[2][i] ^ state[3][i]
+		newState[1][i] = state[0][i] ^ xtime(state[1][i]) ^ (state[2][i] ^ xtime(state[2][i])) ^ state[3][i]
+		newState[2][i] = state[0][i] ^ state[1][i] ^ xtime(state[2][i]) ^ (state[3][i] ^ xtime(state[3][i]))
+		newState[3][i] = (state[0][i] ^ xtime(state[0][i])) ^ state[1][i] ^ state[2][i] ^ xtime(state[3][i])
+	}
+	return newState
 
 }
-func addRoundKey(state [][]byte, key []byte) [][]byte{
+func addRoundKey(state [][]byte, key []byte) [][]byte {
 
-  for r := uint32(0); r < STATE_SIZE_ROWS; r++ {
-    for c := uint32(0); c < STATE_SIZE_ROWS; c++ {
-      state[r][c] ^= key[r+STATE_SIZE_ROWS*c]
-    }
-  }
+	for r := uint32(0); r < STATE_SIZE_ROWS; r++ {
+		for c := uint32(0); c < STATE_SIZE_ROWS; c++ {
+			state[r][c] ^= key[r+STATE_SIZE_ROWS*c]
+		}
+	}
 
-  return state 
+	return state
 }
 
 func expandKeyDecrypt([]byte) []uint32 {
@@ -155,6 +166,7 @@ func expandKeyDecrypt([]byte) []uint32 {
 }
 
 func Encrypt(plaintext []byte) []byte {
+
 	return []byte("")
 }
 
