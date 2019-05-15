@@ -116,26 +116,15 @@ func expandKeyEncrypt(words []uint32, key []byte) []uint32 {
 	return words
 }
 
-func addRoundKey(plaintext []byte, key []byte) []uint32{
-  state := []uint32{
-    0x47, 0x40, 0xA3, 0x4C,
-    0x37, 0xD4, 0x70, 0x9F,
-    0x94, 0xE4, 0x3A, 0x42,
-    0xED, 0xA5, 0xA6, 0xBC,
+func addRoundKey(state [][]byte, key []byte) [][]byte{
+
+  for r := uint32(0); r < STATE_SIZE_ROWS; r++ {
+    for c := uint32(0); c < STATE_SIZE_ROWS; c++ {
+      state[r][c] ^= key[r+STATE_SIZE_ROWS*c]
+    }
   }
 
-  key := []uint32{
-    0xAC, 0x19, 0x28, 0x57,
-    0x77, 0xFA, 0xD1, 0x5C,
-    0x66, 0xDC, 0x29, 0x00,
-    0xF3, 0x21, 0x41, 0x6A,
-  }
-  result_int := [BLOCK_SIZE_BYTES]uint32{}
-  for i := uint32(0); i < BLOCK_SIZE_BYTES; i++ {
-    result[i] = state[i] ^key[i]
-  }
-
-  return result
+  return state 
 }
 
 func expandKeyDecrypt([]byte) []uint32 {
