@@ -86,6 +86,14 @@ func subWord(word uint32) uint32 {
 	return result_word
 }
 
+func shiftRows(state [][]byte) [][]byte {
+	for r := 0; r < STATE_SIZE_ROWS; r++ {
+		state[r] = append(state[r][r:], state[r][:r]...)
+	}
+
+	return state
+}
+
 func expandKeyEncrypt(words []uint32, key []byte) []uint32 {
 	for i := uint32(0); i < KEY_SIZE_BYTES; i++ {
 		count := uint32(0)
