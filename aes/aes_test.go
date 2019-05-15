@@ -6,12 +6,34 @@ import (
 	"testing"
 )
 
+func TestCopyToState(t *testing.T) {
+	block := []byte{
+		0xea, 0x04, 0x65, 0x85, 0x83, 0x45, 0x5d, 0x96,
+		0x5c, 0x33, 0x98, 0xb0, 0xf0, 0x2d, 0xad, 0xc5,
+	}
+
+	state_right_bytes := [][]byte{
+		[]byte{0xea, 0x83, 0x5c, 0xf0},
+		[]byte{0x04, 0x45, 0x33, 0x2d},
+		[]byte{0x65, 0x5d, 0x98, 0xad},
+		[]byte{0x85, 0x96, 0xb0, 0xc5},
+	}
+	state_candidate_bytes := copyToState(block)
+
+	state_right := fmt.Sprintf("%v", state_right_bytes)
+	state_candidate := fmt.Sprintf("%v", state_candidate_bytes)
+
+	if state_right != state_candidate {
+		t.Errorf("Wrong state %v != %v", state_candidate, state_right)
+	}
+}
+
 func TestSubByte(t *testing.T) {
 	var sbox_value_right byte = 0x5d
 	sbox_value_candidate := subByte(0x8d)
 
 	if sbox_value_right != sbox_value_candidate {
-		t.Errorf("Wrong subByte %v != %v", sbox_value_right, sbox_value_candidate)
+		t.Errorf("Wrong subByte %v != %v", sbox_value_candidate, sbox_value_right)
 	}
 }
 
@@ -20,7 +42,7 @@ func TestSubWord(t *testing.T) {
 	subword_candidate := subWord(0x8d292f7f)
 
 	if subword_right != subword_candidate {
-		t.Errorf("Wrong subWord %v != %v", subword_right, subword_candidate)
+		t.Errorf("Wrong subWord %v != %v", subword_candidate, subword_right)
 	}
 }
 
@@ -40,7 +62,7 @@ func TestSubBytes(t *testing.T) {
 	state_candidate := fmt.Sprintf("%v", state_candidate_bytes)
 
 	if state_right != state_candidate {
-		t.Errorf("Wrong bytes substitution! %v != %v", state_right, state_candidate)
+		t.Errorf("Wrong bytes substitution! %v != %v", state_candidate, state_right)
 	}
 }
 

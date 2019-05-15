@@ -9,6 +9,7 @@ const BYTE_SIZE_BITS = 8
 const WORD_SIZE_BYTES = 32
 const KEY_SIZE_BYTES = 4
 const EXPANDED_KEY_SIZE_WORDS = 44
+const STATE_SIZE_ROWS = 4
 
 var rcon = []uint32{0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0x1b000000, 0x36000000}
 
@@ -34,6 +35,24 @@ var sbox0 = [][]byte{
 
 func getEmptyBlock() []byte {
 	return make([]byte, BLOCK_SIZE_BYTES)
+}
+
+func copyToState(block []byte) [][]byte {
+	state := make([][]byte, STATE_SIZE_ROWS)
+
+	nb := (len(block) * BYTE_SIZE_BITS) / 32
+	fmt.Println(STATE_SIZE_ROWS)
+	for i := 0; i < STATE_SIZE_ROWS; i++ {
+		state[i] = make([]byte, nb)
+	}
+
+	for r := 0; r < STATE_SIZE_ROWS; r++ {
+		for c := 0; c < nb; c++ {
+			state[r][c] = block[r+STATE_SIZE_ROWS*c]
+		}
+	}
+
+	return state
 }
 
 func rotWord(word uint32) uint32 {
