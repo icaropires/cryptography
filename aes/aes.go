@@ -120,6 +120,16 @@ func expandKeyEncrypt(words []uint32, key []byte) []uint32 {
 	return words
 }
 
+func mixColumns(state [][]byte) [][]byte{
+    for i := uint32(0); i < STATE_SIZE_ROWS; i++ {
+      state[0][i] = (state[0][i] << 1) ^ (state[1][i] ^ (state[1][i] << 1)) ^ state[2][i] ^ state[3][i]
+      state[1][i] = state[0][i] ^ (state[1][i] << 1 ) ^ (state[2][i] ^ (state[2][i] << 1)) ^ state[3][i]
+      state[2][i] = state[0][i] ^ state[1][i] ^ (state[2][i] << 1) ^ (state[3][i] ^ (state[3][i] << 1))
+      state[3][i] = (state[0][i] ^ (state[0][i] << 1)) ^ state[1][i] ^ state[2][i] ^ (state[3][i] << 1)
+    }
+    return state
+
+}
 func addRoundKey(state [][]byte, key []byte) [][]byte{
 
   for r := uint32(0); r < STATE_SIZE_ROWS; r++ {
