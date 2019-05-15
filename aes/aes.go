@@ -41,7 +41,6 @@ func copyToState(block []byte) [][]byte {
 	state := make([][]byte, STATE_SIZE_ROWS)
 
 	nb := (len(block) * BYTE_SIZE_BITS) / 32
-	fmt.Println(STATE_SIZE_ROWS)
 	for i := 0; i < STATE_SIZE_ROWS; i++ {
 		state[i] = make([]byte, nb)
 	}
@@ -65,9 +64,12 @@ func subByte(b byte) byte {
 	return sbox0[x][y]
 }
 
-func subBytes(state []byte) []byte {
-	for i := 0; i < BLOCK_SIZE_BYTES; i++ {
-		state[i] = subByte(state[i])
+func subBytes(state [][]byte) [][]byte {
+	nb := len(state[0])
+	for r := 0; r < STATE_SIZE_ROWS; r++ {
+		for c := 0; c < nb; c++ {
+			state[r][c] = subByte(state[r][c])
+		}
 	}
 
 	return state
