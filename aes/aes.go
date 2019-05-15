@@ -94,6 +94,10 @@ func shiftRows(state [][]byte) [][]byte {
 	return state
 }
 
+func mixColumns(state [][]byte) [][]byte {
+	return state
+}
+
 func expandKeyEncrypt(words []uint32, key []byte) []uint32 {
 	for i := uint32(0); i < KEY_SIZE_BYTES; i++ {
 		count := uint32(0)
