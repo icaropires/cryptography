@@ -40,10 +40,18 @@ func rotWord(word uint32) uint32 {
 	return word<<BYTE_SIZE_BITS | word>>(WORD_SIZE_BYTES-BYTE_SIZE_BITS)
 }
 
-func subWordByte(b byte) byte {
+func subByte(b byte) byte {
 	x, y := (b&0xf0)>>4, b&0xf
 
 	return sbox0[x][y]
+}
+
+func subBytes(state []byte) []byte {
+	for i := 0; i < BLOCK_SIZE_BYTES; i++ {
+		state[i] = subByte(state[i])
+	}
+
+	return state
 }
 
 func subWord(word uint32) uint32 {
@@ -51,7 +59,7 @@ func subWord(word uint32) uint32 {
 
 	for shift_hex := uint32(0); shift_hex < WORD_SIZE_BYTES; shift_hex += 8 {
 		b := byte(word & (0xff << shift_hex) >> shift_hex)
-		result_word |= uint32(subWordByte(b)) << shift_hex
+		result_word |= uint32(subByte(b)) << shift_hex
 	}
 
 	return result_word

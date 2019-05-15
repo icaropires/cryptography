@@ -6,12 +6,12 @@ import (
 	"testing"
 )
 
-func TestSubWordByte(t *testing.T) {
+func TestSubByte(t *testing.T) {
 	var sbox_value_right byte = 0x5d
-	sbox_value_candidate := subWordByte(0x8d)
+	sbox_value_candidate := subByte(0x8d)
 
 	if sbox_value_right != sbox_value_candidate {
-		t.Errorf("Wrong subWordByte %v != %v", sbox_value_right, sbox_value_candidate)
+		t.Errorf("Wrong subByte %v != %v", sbox_value_right, sbox_value_candidate)
 	}
 }
 
@@ -21,6 +21,26 @@ func TestSubWord(t *testing.T) {
 
 	if subword_right != subword_candidate {
 		t.Errorf("Wrong subWord %v != %v", subword_right, subword_candidate)
+	}
+}
+
+func TestSubBytes(t *testing.T) {
+	state := []byte{
+		0xea, 0x04, 0x65, 0x85, 0x83, 0x45, 0x5d, 0x96,
+		0x5c, 0x33, 0x98, 0xb0, 0xf0, 0x2d, 0xad, 0xc5,
+	}
+
+	state_right_bytes := []byte{
+		0x87, 0xf2, 0x4d, 0x97, 0xec, 0x6e, 0x4c, 0x90,
+		0x4a, 0xc3, 0x46, 0xe7, 0x8c, 0xd8, 0x95, 0xa6,
+	}
+	state_candidate_bytes := subBytes(state)
+
+	state_right := fmt.Sprintf("%v", state_right_bytes)
+	state_candidate := fmt.Sprintf("%v", state_candidate_bytes)
+
+	if state_right != state_candidate {
+		t.Errorf("Wrong bytes substitution! %v != %v", state_right, state_candidate)
 	}
 }
 
