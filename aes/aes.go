@@ -4,11 +4,13 @@ import (
 	"fmt"
 )
 
-const BLOCK_SIZE = 16
-const BYTE_SIZE = 8
-const WORD_KEY_SIZE = 32
+const BLOCK_SIZE_BYTES = 16
+const BYTE_SIZE_BITS = 8
+const WORD_SIZE_BYTES = 32
+const KEY_SIZE_BYTES = 4
+const EXPANDED_KEY_SIZE_WORDS = 44
 
-var RCON = []byte{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36}
+var rcon = []byte{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36}
 
 // FIPS-197 Figure 7. S-box substitution values in hexadecimal format.
 var sbox0 = [][]byte{
@@ -31,11 +33,11 @@ var sbox0 = [][]byte{
 }
 
 func getEmptyBlock() []byte {
-	return make([]byte, BLOCK_SIZE)
+	return make([]byte, BLOCK_SIZE_BYTES)
 }
 
-func rotWord(word byte) byte {
-	return word<<BYTE_SIZE | word>>(WORD_KEY_SIZE-BYTE_SIZE)
+func rotWord(word uint32) uint32 {
+	return word<<BYTE_SIZE_BITS | word>>(WORD_SIZE_BYTES-BYTE_SIZE_BITS)
 }
 
 func subWordByte(b byte) byte {
@@ -47,7 +49,7 @@ func subWordByte(b byte) byte {
 func subWord(word uint32) uint32 {
 	var result_word uint32 = 0
 
-	for shift_hex := uint32(0); shift_hex < 32; shift_hex += 8 {
+	for shift_hex := uint32(0); shift_hex < WORD_SIZE_BYTES; shift_hex += 8 {
 		b := byte(word & (0xff << shift_hex) >> shift_hex)
 		result_word |= uint32(subWordByte(b)) << shift_hex
 	}
@@ -55,8 +57,26 @@ func subWord(word uint32) uint32 {
 	return result_word
 }
 
-func expandKeyEncrypt([]byte) []uint32 {
-	return []uint32{}
+func expandKeyEncrypt(words []uint32, key []byte) []uint32 {
+	for i := uint32(0); i < KEY_SIZE_BYTES; i++ {
+		count := uint32(0)
+		for shift_hex := uint32(0); shift_hex < WORD_SIZE_BYTES; shift_hex += 8 {
+			words[i] |= uint32(key[KEY_SIZE_BYTES*i+count]) << shift_hex
+			count++
+		}
+	}
+
+	for i := uint32(KEY_SIZE_BYTES); i < EXPANDED_KEY_SIZE_WORDS; i++ {
+		temp := words[i-1]
+
+		if (i % KEY_SIZE_BYTES) == 0 {
+			temp = subWord(rotWord(temp)) ^ uint32(rcon[(i/KEY_SIZE_BYTES)-1])
+		}
+
+		words[i] = words[i-KEY_SIZE_BYTES] ^ temp
+	}
+
+	return words
 }
 
 func expandKeyDecrypt([]byte) []uint32 {
