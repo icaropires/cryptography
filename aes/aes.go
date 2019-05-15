@@ -148,8 +148,36 @@ func mixColumns(state [][]byte) [][]byte {
 		newState[3][i] = (state[0][i] ^ xtime(state[0][i])) ^ state[1][i] ^ state[2][i] ^ xtime(state[3][i])
 	}
 	return newState
-
 }
+
+func mult(value byte, coef uint32) byte {
+  switch coef{
+    case 9:
+      return xtime(xtime(xtime(value))) ^ value
+    case 11:
+      return xtime(xtime(xtime(value)) ^ value) ^ value
+    case 13:
+      return xtime(xtime(xtime(value) ^ value)) ^ value
+    case 14:
+      return xtime(xtime(xtime(value) ^ value) ^ value)
+    default:
+      return 0x0
+  }
+}
+func invMixColumns(state [][]byte) [][]byte {
+	newState := make([][]byte, STATE_SIZE_ROWS)
+	for i := 0; i < STATE_SIZE_ROWS; i++ {
+		newState[i] = make([]byte, STATE_SIZE_ROWS)
+	}
+	for i := uint32(0); i < STATE_SIZE_ROWS; i++ {
+		newState[0][i] = mult(state[0][i], 14) ^ mult(state[1][i], 11) ^ mult(state[2][i], 13) ^ mult(state[3][i], 9)
+		newState[1][i] = mult(state[0][i], 9)  ^ mult(state[1][i], 14) ^ mult(state[2][i], 11) ^ mult(state[3][i], 13)
+		newState[2][i] = mult(state[0][i], 13) ^ mult(state[1][i], 9)  ^ mult(state[2][i], 14) ^ mult(state[3][i], 11)
+		newState[3][i] = mult(state[0][i], 11) ^ mult(state[1][i], 13) ^ mult(state[2][i], 9)  ^ mult(state[3][i], 14)
+	}
+	return newState
+}
+
 func addRoundKey(state [][]byte, key []byte) [][]byte {
 
 	for r := uint32(0); r < STATE_SIZE_ROWS; r++ {
