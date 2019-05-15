@@ -10,7 +10,7 @@ const WORD_SIZE_BYTES = 32
 const KEY_SIZE_BYTES = 4
 const EXPANDED_KEY_SIZE_WORDS = 44
 
-var rcon = []byte{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36}
+var rcon = []uint32{0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0x1b000000, 0x36000000}
 
 // FIPS-197 Figure 7. S-box substitution values in hexadecimal format.
 var sbox0 = [][]byte{
@@ -60,8 +60,8 @@ func subWord(word uint32) uint32 {
 func expandKeyEncrypt(words []uint32, key []byte) []uint32 {
 	for i := uint32(0); i < KEY_SIZE_BYTES; i++ {
 		count := uint32(0)
-		for shift_hex := uint32(0); shift_hex < WORD_SIZE_BYTES; shift_hex += 8 {
-			words[i] |= uint32(key[KEY_SIZE_BYTES*i+count]) << shift_hex
+		for shift_hex := uint32(8); shift_hex <= WORD_SIZE_BYTES; shift_hex += 8 {
+			words[i] |= uint32(key[KEY_SIZE_BYTES*i+count]) << (WORD_SIZE_BYTES - shift_hex)
 			count++
 		}
 	}
@@ -70,7 +70,7 @@ func expandKeyEncrypt(words []uint32, key []byte) []uint32 {
 		temp := words[i-1]
 
 		if (i % KEY_SIZE_BYTES) == 0 {
-			temp = subWord(rotWord(temp)) ^ uint32(rcon[(i/KEY_SIZE_BYTES)-1])
+			temp = subWord(rotWord(temp)) ^ rcon[(i/KEY_SIZE_BYTES)-1]
 		}
 
 		words[i] = words[i-KEY_SIZE_BYTES] ^ temp
