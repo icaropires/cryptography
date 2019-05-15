@@ -94,9 +94,6 @@ func shiftRows(state [][]byte) [][]byte {
 	return state
 }
 
-func mixColumns(state [][]byte) [][]byte {
-	return state
-}
 
 func expandKeyEncrypt(words []uint32, key []byte) []uint32 {
 	for i := uint32(0); i < KEY_SIZE_BYTES; i++ {
@@ -120,14 +117,26 @@ func expandKeyEncrypt(words []uint32, key []byte) []uint32 {
 	return words
 }
 
+
+func xtime(value byte) byte {
+  if value & 0x80 != 0 {
+    return (((value << 1) ^ 0x1B) & 0xFF)
+  }
+  return (value << 1)
+}
+
 func mixColumns(state [][]byte) [][]byte{
-    for i := uint32(0); i < STATE_SIZE_ROWS; i++ {
-      state[0][i] = (state[0][i] << 1) ^ (state[1][i] ^ (state[1][i] << 1)) ^ state[2][i] ^ state[3][i]
-      state[1][i] = state[0][i] ^ (state[1][i] << 1 ) ^ (state[2][i] ^ (state[2][i] << 1)) ^ state[3][i]
-      state[2][i] = state[0][i] ^ state[1][i] ^ (state[2][i] << 1) ^ (state[3][i] ^ (state[3][i] << 1))
-      state[3][i] = (state[0][i] ^ (state[0][i] << 1)) ^ state[1][i] ^ state[2][i] ^ (state[3][i] << 1)
+    newState := make([][]byte, STATE_SIZE_ROWS)
+    for i := 0; i < STATE_SIZE_ROWS; i++ {
+      newState[i] = make([]byte, STATE_SIZE_ROWS)
     }
-    return state
+    for i := uint32(0); i < STATE_SIZE_ROWS; i++ {
+      newState[0][i] = xtime(state[0][i]) ^ (state[1][i] ^ xtime(state[1][i])) ^ state[2][i] ^ state[3][i]
+      newState[1][i] = state[0][i] ^ xtime(state[1][i]) ^ (state[2][i] ^ xtime(state[2][i])) ^ state[3][i]
+      newState[2][i] = state[0][i] ^ state[1][i] ^ xtime(state[2][i]) ^ (state[3][i] ^ xtime(state[3][i]))
+      newState[3][i] = (state[0][i] ^ xtime(state[0][i])) ^ state[1][i] ^ state[2][i] ^ xtime(state[3][i])
+    }
+    return newState
 
 }
 func addRoundKey(state [][]byte, key []byte) [][]byte{
