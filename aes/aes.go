@@ -298,6 +298,24 @@ func Decrypt(cyphertext []byte, key []byte) []byte {
 
 }
 
+func ofb(block []byte, iv []byte, key []byte, nblocks int) []byte{
+	ciphertext := make([]byte, BLOCK_SIZE_BYTES)
+  result := make([]byte, BLOCK_SIZE_BYTES)
+  if len(iv) > 0 {
+    for i := uint32(0); i < BLOCK_SIZE_BYTES; i++ {
+      result = Encrypt(iv, key)
+    }
+  } else{
+    for i := uint32(0); i < BLOCK_SIZE_BYTES; i++ {
+      result = Encrypt(result, key)
+    }
+  }
+    for i := uint32(0); i < BLOCK_SIZE_BYTES; i++ {
+      ciphertext[i] = result[i] ^ block[i]
+    }
+  return ciphertext
+}
+
 func main() {
 	fmt.Println("I'm the super AES!!!")
 }
