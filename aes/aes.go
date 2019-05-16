@@ -111,7 +111,6 @@ func subBytes(state [][]byte) [][]byte {
 	return state
 }
 
-
 func invSubByte(b byte) byte {
 	x, y := (b&0xf0)>>4, b&0xf
 
@@ -149,8 +148,10 @@ func shiftRows(state [][]byte) [][]byte {
 }
 
 func invShiftRows(state [][]byte) [][]byte {
+	nb := len(state[0])
+
 	for r := 0; r < STATE_SIZE_ROWS; r++ {
-		state[r] = append(state[r][:r], state[r][r:]...)
+		state[r] = append(state[r][nb-r:], state[r][:nb-r]...)
 	}
 
 	return state
@@ -278,8 +279,27 @@ func Encrypt(block []byte, key []byte) []byte {
 	return copyFromState(state)
 }
 
-func Decrypt(cyphertext []byte) []byte {
-	return []byte("")
+func Decrypt(cyphertext []byte, key []byte) []byte {
+	var nb = (len(cyphertext) * BYTE_SIZE_BITS) / 32
+
+	keys := expandKeyEncrypt(key)
+	state := copyToState(cyphertext)
+
+	state = addRoundKey(state, wordToByte(keys, NUMBER_OF_ROUNDS*nb))
+
+	for round := NUMBER_OF_ROUNDS - 1; round > 0; round++ {
+		state = invShiftRows(state)
+		state = invSubBytes(state)
+		state = addRoundKey(state, wordToByte(keys, round*nb))
+		state = invMixColumns(state)
+	}
+
+	state = invShiftRows(state)
+	state = invSubBytes(state)
+	state = addRoundKey(state, wordToByte(keys, 0))
+
+	return copyFromState(state)
+
 }
 
 func main() {
