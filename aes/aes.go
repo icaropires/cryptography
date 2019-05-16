@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
@@ -258,11 +259,14 @@ func wordToByte(keys []uint32, start int) []byte {
 
 func textFromFile(filepath string) [][]byte {
 	file, err := ioutil.ReadFile(filepath)
-
 	if err != nil {
 		panic("Não foi possível ler do arquivo")
 	}
+	file = bytes.Trim(file, "\n")
 
+	for i := 0; i < len(file)%16; i++ {
+		file = append(file, ' ')
+	}
 	var blocks [][]byte
 	for i := 0; i <= len(file)-16; i += 16 {
 		blocks = append(blocks, file[i:i+16])
@@ -350,7 +354,8 @@ func ofb(block []byte, iv []byte, key []byte) []byte {
 
 func main() {
 	if len(os.Args) < 4 {
-		fmt.Println("\nUsage example: go run aes.go [d|e] [filename] [key]\n")
+		fmt.Println("\nUsage example: go run aes.go [d|e] [filename] [key]")
+		fmt.Println()
 		panic("Wrong usage!")
 	}
 
