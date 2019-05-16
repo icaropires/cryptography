@@ -114,6 +114,31 @@ func TestShiftRows(t *testing.T) {
 	}
 }
 
+func TestInvShiftRows(t *testing.T) {
+	state := [][]byte{
+		[]byte{0xd4, 0xe0, 0xb8, 0x1e},
+		[]byte{0xbf, 0xb4, 0x41, 0x27},
+		[]byte{0x5d, 0x52, 0x11, 0x98},
+		[]byte{0x30, 0xae, 0xf1, 0xe5},
+	}
+
+	state_right_bytes := [][]byte{
+		[]byte{0xd4, 0xe0, 0xb8, 0x1e},
+		[]byte{0x27, 0xbf, 0xb4, 0x41},
+		[]byte{0x11, 0x98, 0x5d, 0x52},
+		[]byte{0xae, 0xf1, 0xe5, 0x30},
+	}
+
+	state_candidate_bytes := shiftRows(state)
+
+	state_right := fmt.Sprintf("%v", state_right_bytes)
+	state_candidate := fmt.Sprintf("%v", state_candidate_bytes)
+
+	if state_right != state_candidate {
+		t.Errorf("Wrong bytes shifting! %v != %v", state_candidate, state_right)
+	}
+}
+
 func TestAddRoundKey(t *testing.T) {
 	block := []byte{
 		0x47, 0x37, 0x94, 0xED,
