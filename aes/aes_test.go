@@ -333,7 +333,7 @@ func TestDecrypt(t *testing.T) {
 		0x31, 0x31, 0x98, 0xa2, 0xe0, 0x37, 0x07, 0x34,
 	}
 
-	deciphered_candidate := Encrypt(block, key)
+	deciphered_candidate := Decrypt(block, key)
 
 	if string(deciphered_candidate) != string(deciphered_right) {
 		t.Errorf("Wrong deciphered text! %v != %v", deciphered_candidate, deciphered_right)

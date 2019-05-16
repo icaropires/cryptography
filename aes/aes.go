@@ -287,7 +287,7 @@ func Decrypt(cyphertext []byte, key []byte) []byte {
 
 	state = addRoundKey(state, wordToByte(keys, NUMBER_OF_ROUNDS*nb))
 
-	for round := NUMBER_OF_ROUNDS - 1; round > 0; round++ {
+	for round := NUMBER_OF_ROUNDS - 1; round > 0; round-- {
 		state = invShiftRows(state)
 		state = invSubBytes(state)
 		state = addRoundKey(state, wordToByte(keys, round*nb))
