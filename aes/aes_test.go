@@ -251,14 +251,14 @@ func TestInvMixColumns(t *testing.T) {
 	}
 }
 
-func TestKeyExpansionEncrypt(t *testing.T) {
+func TestKeyExpansion(t *testing.T) {
 	// Check fips 197, Appendix A, page 27
 	key := []byte{
 		0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6,
 		0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c,
 	}
 
-	key_candidate_int := expandKeyEncrypt(key)
+	key_candidate_int := expandKey(key)
 	key_right_int := []uint32{
 		0x2b7e1516, 0x28aed2a6, 0xabf71588, 0x9cf4f3c,
 		0xa0fafe17, 0x88542cb1, 0x23a33939, 0x2a6c7605,
@@ -272,20 +272,6 @@ func TestKeyExpansionEncrypt(t *testing.T) {
 		0xac7766f3, 0x19fadc21, 0x28d12941, 0x575c006e,
 		0xd014f9a8, 0xc9ee2589, 0xe13f0cc8, 0xb6630ca6,
 	}
-	key_candidate := fmt.Sprintf("%v", key_candidate_int)
-	key_right := fmt.Sprintf("%v", key_right_int)
-
-	if key_candidate != key_right {
-		t.Errorf("Wrong key %v != %v", key_candidate, key_right)
-	}
-}
-
-func TestKeyExpansionDecrypt(t *testing.T) {
-	key := getEmptyBlock()
-	key_candidate_int := []uint32(expandKeyDecrypt(key))
-
-	key_right_int := []uint32{3411799988, 300061246, 3478251811, 2383974255, 226657621, 2297109739, 2998141196, 3999567141, 3924997738, 2238290366, 979312103, 1557171241, 2336942831, 1822109652, 3208021081, 1720685006, 2265703722, 3889284411, 3551374221, 3652785559, 4028541365, 1624907793, 880570038, 169131546, 2456059330, 2428799396, 1420185255, 1047056556, 2886511982, 44102758, 3294807811, 1791925771, 3334615909, 2930530568, 3334615909, 2930530568, 1752066669, 1752066669, 1752066669, 1752066669, 0, 0, 0, 0}
-
 	key_candidate := fmt.Sprintf("%v", key_candidate_int)
 	key_right := fmt.Sprintf("%v", key_right_int)
 

@@ -157,7 +157,7 @@ func invShiftRows(state [][]byte) [][]byte {
 	return state
 }
 
-func expandKeyEncrypt(key []byte) []uint32 {
+func expandKey(key []byte) []uint32 {
 	words := make([]uint32, EXPANDED_KEY_SIZE_WORDS)
 
 	for i := uint32(0); i < KEY_SIZE_BYTES; i++ {
@@ -240,10 +240,6 @@ func addRoundKey(state [][]byte, key []byte) [][]byte {
 	return state
 }
 
-func expandKeyDecrypt([]byte) []uint32 {
-	return []uint32{}
-}
-
 func wordToByte(keys []uint32, start int) []byte {
 	var key_bytes []byte
 
@@ -260,7 +256,7 @@ func wordToByte(keys []uint32, start int) []byte {
 func Encrypt(block []byte, key []byte) []byte {
 	var nb = (len(block) * BYTE_SIZE_BITS) / 32
 
-	keys := expandKeyEncrypt(key)
+	keys := expandKey(key)
 	state := copyToState(block)
 
 	state = addRoundKey(state, wordToByte(keys, 0))
@@ -282,7 +278,7 @@ func Encrypt(block []byte, key []byte) []byte {
 func Decrypt(cyphertext []byte, key []byte) []byte {
 	var nb = (len(cyphertext) * BYTE_SIZE_BITS) / 32
 
-	keys := expandKeyEncrypt(key)
+	keys := expandKey(key)
 	state := copyToState(cyphertext)
 
 	state = addRoundKey(state, wordToByte(keys, NUMBER_OF_ROUNDS*nb))
