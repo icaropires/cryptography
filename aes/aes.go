@@ -1,15 +1,19 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 )
 
-const BLOCK_SIZE_BYTES = 16
-const BYTE_SIZE_BITS = 8
-const WORD_SIZE_BYTES = 32
-const KEY_SIZE_BYTES = 4
-const EXPANDED_KEY_SIZE_WORDS = 44
-const STATE_SIZE_ROWS = 4
+const (
+	BLOCK_SIZE_BYTES        = 16
+	BYTE_SIZE_BITS          = 8
+	WORD_SIZE_BYTES         = 32
+	KEY_SIZE_BYTES          = 4
+	EXPANDED_KEY_SIZE_WORDS = 44
+	STATE_SIZE_ROWS         = 4
+	NUMBER_OF_ROUNDS        = 10
+)
 
 var rcon = []uint32{0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0x1b000000, 0x36000000}
 
@@ -107,7 +111,9 @@ func shiftRows(state [][]byte) [][]byte {
 	return state
 }
 
-func expandKeyEncrypt(words []uint32, key []byte) []uint32 {
+func expandKeyEncrypt(key []byte) []uint32 {
+	words := make([]uint32, EXPANDED_KEY_SIZE_WORDS)
+
 	for i := uint32(0); i < KEY_SIZE_BYTES; i++ {
 		count := uint32(0)
 		for shift_hex := uint32(8); shift_hex <= WORD_SIZE_BYTES; shift_hex += 8 {
@@ -179,7 +185,6 @@ func invMixColumns(state [][]byte) [][]byte {
 }
 
 func addRoundKey(state [][]byte, key []byte) [][]byte {
-
 	for r := uint32(0); r < STATE_SIZE_ROWS; r++ {
 		for c := uint32(0); c < STATE_SIZE_ROWS; c++ {
 			state[r][c] ^= key[r+STATE_SIZE_ROWS*c]
@@ -193,9 +198,39 @@ func expandKeyDecrypt([]byte) []uint32 {
 	return []uint32{}
 }
 
-func Encrypt(plaintext []byte) []byte {
+func wordToByte(keys []uint32, start int) []byte {
+	var key_bytes []byte
 
-	return []byte("")
+	for i := start; i < start+4; i++ {
+		key_bytes_aux := make([]byte, 4)
+		binary.BigEndian.PutUint32(key_bytes_aux, keys[i])
+
+		key_bytes = append(key_bytes, key_bytes_aux...)
+	}
+
+	return key_bytes
+}
+
+func Encrypt(block []byte, key []byte) []byte {
+	var nb = (len(block) * BYTE_SIZE_BITS) / 32
+
+	keys := expandKeyEncrypt(key)
+	state := copyToState(block)
+
+	state = addRoundKey(state, wordToByte(keys, 0))
+
+	for round := 1; round < NUMBER_OF_ROUNDS; round++ {
+		state = subBytes(state)
+		state = shiftRows(state)
+		state = mixColumns(state)
+		state = addRoundKey(state, wordToByte(keys, round*nb))
+	}
+
+	state = subBytes(state)
+	state = shiftRows(state)
+	state = addRoundKey(state, wordToByte(keys, NUMBER_OF_ROUNDS*nb))
+
+	return copyFromState(state)
 }
 
 func Decrypt(cyphertext []byte) []byte {

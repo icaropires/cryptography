@@ -28,6 +28,25 @@ func TestCopyToState(t *testing.T) {
 	}
 }
 
+func TestCopyFromState(t *testing.T) {
+	state := [][]byte{
+		[]byte{0xea, 0x83, 0x5c, 0xf0},
+		[]byte{0x04, 0x45, 0x33, 0x2d},
+		[]byte{0x65, 0x5d, 0x98, 0xad},
+		[]byte{0x85, 0x96, 0xb0, 0xc5},
+	}
+
+	block_right_bytes := []byte{0xea, 0x04, 0x65, 0x85, 0x83, 0x45, 0x5d, 0x96, 0x5c, 0x33, 0x98, 0xb0, 0xf0, 0x2d, 0xad, 0xc5}
+	block_candidate_bytes := copyFromState(state)
+
+	block_right := fmt.Sprintf("%v", block_right_bytes)
+	block_candidate := fmt.Sprintf("%v", block_candidate_bytes)
+
+	if block_right != block_candidate {
+		t.Errorf("Wrong block %v != %v", block_candidate, block_right)
+	}
+}
+
 func TestSubByte(t *testing.T) {
 	var sbox_value_right byte = 0x5d
 	sbox_value_candidate := subByte(0x8d)
@@ -184,7 +203,7 @@ func TestKeyExpansionEncrypt(t *testing.T) {
 		0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c,
 	}
 
-	key_candidate_int := expandKeyEncrypt(make([]uint32, EXPANDED_KEY_SIZE_WORDS), key)
+	key_candidate_int := expandKeyEncrypt(key)
 	key_right_int := []uint32{
 		0x2b7e1516, 0x28aed2a6, 0xabf71588, 0x9cf4f3c,
 		0xa0fafe17, 0x88542cb1, 0x23a33939, 0x2a6c7605,
@@ -221,16 +240,25 @@ func TestKeyExpansionDecrypt(t *testing.T) {
 }
 
 func TestEncrypt(t *testing.T) {
-	key := getEmptyBlock()
-	block, _ := aes.NewCipher(key)
+	block := []byte{
+		0x32, 0x43, 0xf6, 0xa8, 0x88, 0x5a, 0x30, 0x8d,
+		0x31, 0x31, 0x98, 0xa2, 0xe0, 0x37, 0x07, 0x34,
+	}
 
-	src_right, dst_right := []byte("abobora com pato"), getEmptyBlock()
-	block.Encrypt(dst_right, src_right)
+	key := []byte{
+		0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6,
+		0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c,
+	}
 
-	dst_candidate := Encrypt(src_right)
+	ciphered_right := []byte{
+		0x39, 0x25, 0x84, 0x1d, 0x02, 0xdc, 0x09, 0xfb,
+		0xdc, 0x11, 0x85, 0x97, 0x19, 0x6a, 0x0b, 0x32,
+	}
 
-	if string(dst_candidate) != string(dst_right) {
-		t.Errorf("Wrong cyphertext %v != %v", dst_candidate, dst_right)
+	ciphered_candidate := Encrypt(block, key)
+
+	if string(ciphered_candidate) != string(ciphered_right) {
+		t.Errorf("Wrong ciphered text! %v != %v", ciphered_candidate, ciphered_right)
 	}
 }
 
