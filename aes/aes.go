@@ -3,6 +3,9 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
 )
 
 const (
@@ -253,6 +256,35 @@ func wordToByte(keys []uint32, start int) []byte {
 	return key_bytes
 }
 
+func textFromFile(filepath string) [][]byte {
+	file, err := ioutil.ReadFile(filepath)
+
+	if err != nil {
+		panic("Não foi possível ler do arquivo")
+	}
+
+	var blocks [][]byte
+	for i := 0; i <= len(file)-16; i += 16 {
+		blocks = append(blocks, file[i:i+16])
+	}
+
+	return blocks
+}
+
+func writeBlocksToFile(filename string, blocks [][]byte) {
+	var result_block []byte
+
+	for _, block := range blocks {
+		result_block = append(result_block, block...)
+	}
+
+	erro := ioutil.WriteFile(filename, result_block, 0644)
+
+	if erro != nil {
+		panic("Não foi possível escrever no arquivo")
+	}
+}
+
 func Encrypt(block []byte, key []byte) []byte {
 	var nb = (len(block) * BYTE_SIZE_BITS) / 32
 
@@ -298,24 +330,66 @@ func Decrypt(cyphertext []byte, key []byte) []byte {
 
 }
 
-func ofb(block []byte, iv []byte, key []byte, nblocks int) []byte{
+func ofb(block []byte, iv []byte, key []byte) []byte {
 	ciphertext := make([]byte, BLOCK_SIZE_BYTES)
-  result := make([]byte, BLOCK_SIZE_BYTES)
-  if len(iv) > 0 {
-    for i := uint32(0); i < BLOCK_SIZE_BYTES; i++ {
-      result = Encrypt(iv, key)
-    }
-  } else{
-    for i := uint32(0); i < BLOCK_SIZE_BYTES; i++ {
-      result = Encrypt(result, key)
-    }
-  }
-    for i := uint32(0); i < BLOCK_SIZE_BYTES; i++ {
-      ciphertext[i] = result[i] ^ block[i]
-    }
-  return ciphertext
+	result := make([]byte, BLOCK_SIZE_BYTES)
+	if len(iv) > 0 {
+		for i := uint32(0); i < BLOCK_SIZE_BYTES; i++ {
+			result = Encrypt(iv, key)
+		}
+	} else {
+		for i := uint32(0); i < BLOCK_SIZE_BYTES; i++ {
+			result = Encrypt(result, key)
+		}
+	}
+	for i := uint32(0); i < BLOCK_SIZE_BYTES; i++ {
+		ciphertext[i] = result[i] ^ block[i]
+	}
+	return ciphertext
 }
 
 func main() {
-	fmt.Println("I'm the super AES!!!")
+	if len(os.Args) < 4 {
+		fmt.Println("\nUsage example: go run aes.go [d|e] [filename] [key]\n")
+		panic("Wrong usage!")
+	}
+
+	op, filename, key_string := os.Args[1], os.Args[2], os.Args[3]
+
+	if len(key_string) < 16 {
+		key_string += strings.Repeat(" ", 16-len(key_string))
+	}
+
+	key := []byte(key_string)
+
+	if len(key) > 16 {
+		key = key[:16]
+	}
+
+	blocks := textFromFile(filename)
+	var cipher_blocks [][]byte
+
+	if op == "e" {
+		for i, block := range blocks {
+			if i == 0 {
+				cipher_blocks = append(cipher_blocks, ofb(block, key, key))
+			} else {
+				cipher_blocks = append(cipher_blocks, ofb(block, []byte{}, key))
+			}
+		}
+
+		writeBlocksToFile(filename+".cipher", cipher_blocks)
+	} else if op == "d" {
+		for i, block := range blocks {
+			if i == 0 {
+				cipher_blocks = append(cipher_blocks, ofb(block, key, key))
+			} else {
+				cipher_blocks = append(cipher_blocks, ofb(block, []byte{}, key))
+			}
+		}
+		writeBlocksToFile(filename+".deciphered", cipher_blocks)
+	} else {
+		fmt.Println("\nInvalid operation!")
+		panic("Invalid operation")
+	}
 }
