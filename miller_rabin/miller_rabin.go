@@ -21,31 +21,26 @@ func miller_rabin(n uint64, k uint64) bool {
 	for d%2 == 0 {
 		r += 1
 		d /= 2
-		fmt.Println("dddddddddddd", d)
 	}
-	fmt.Println(r, d)
 	for j := uint64(0); j < k; j++ {
 		key := make([]byte, 32)
 		random_bytes := stream_salsa20(8, []byte{4, 2, 4, 4, 1, byte(j), 4, 2}, key)
 		a := binary.BigEndian.Uint64(random_bytes)%(n-2) + 2
-		fmt.Println("a", a)
-		fmt.Println("d", d)
 
-		x := new(big.Int).Exp(big.NewInt(int64(a)), big.NewInt(int64(d)), nil)
-		fmt.Println("x", x)
+		x := new(big.Int).Exp(big.NewInt(int64(a)), big.NewInt(int64(d)), big.NewInt(int64(n)))
 
-		if x == big.NewInt(1) || x == big.NewInt(int64(n)-1) {
+		if x.Uint64() == 1 || x.Uint64() == n-1 {
 			continue
 		}
-		flag := false
+		entrou := false
 		for i := 0; i < r-1; i++ {
 			x = new(big.Int).Exp(x, big.NewInt(int64(2)), big.NewInt(int64(n)))
-			fmt.Println("===============>", x)
-			if x == big.NewInt(int64(n)-1) {
-				flag = true
+			if x.Uint64() == n-1 {
+				entrou = true
+				break
 			}
 		}
-		if !flag {
+		if !entrou {
 			return false
 		}
 	}
@@ -53,7 +48,15 @@ func miller_rabin(n uint64, k uint64) bool {
 }
 
 func main() {
-	fmt.Println(miller_rabin(252601, 1000))
-	fmt.Println("Probabilidade: ", math.Pow(0.25, 100))
-
+	var ent int
+	var k float64
+	fmt.Printf("Número: ")
+	fmt.Scanf("%d", &ent)
+	fmt.Printf("Iterações: ")
+	fmt.Scanf("%f", &k)
+	if miller_rabin(uint64(ent), 10) {
+		fmt.Println("O número é primo com probabilidade: ", 1.0-math.Pow(0.25, k))
+	} else {
+		fmt.Println("O número é composto")
+	}
 }
