@@ -3,9 +3,6 @@ package main
 import (
 	//"encoding/base64"
 	"encoding/binary"
-
-	//"fmt"
-	"io/ioutil"
 )
 
 const ROUNDS = 20
@@ -89,13 +86,5 @@ func stream_salsa20(length int, nonce, key []byte) []byte {
 		output = append(output, get_block(nonce_ints, []uint32{uint32(i & 0xffffffff), uint32(i >> 32)}, key_ints)...)
 	}
 
-	return output
-}
-
-func main() {
-	key := make([]byte, 32)
-	out := stream_salsa20(512, []byte{4, 2, 4, 2, 4, 2, 4, 2}, key)
-
-	ioutil.WriteFile("out", out, 0644)
-	//fmt.Println(base64.StdEncoding.EncodeToString(out))
+	return output[:length]
 }
