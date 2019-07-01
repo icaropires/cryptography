@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"os"
 )
@@ -33,6 +34,11 @@ func (p_point *Point) Add(q *Point, p *big.Int, a *big.Int) Point {
 
 		divisor := new(big.Int).Mul(big.NewInt(2), p_point.y)
 		divisor = new(big.Int).ModInverse(divisor, p)
+
+		if divisor == nil {
+			fmt.Println("Zero division!")
+			return Point{}
+		}
 
 		lambdaAux := new(big.Int).Mul(dividend, divisor)
 		lambda = new(big.Int).Mod(lambdaAux, p)
@@ -74,8 +80,10 @@ func curve(a, b, x *big.Int) *big.Int {
 	return aux
 }
 
-func ListCurvePoints(a, b, p *big.Int) []Point {
+func ListCurvePoints(a, b, p *big.Int) ([]Point, []int) {
 	points := make([]Point, 0)
+	orders := make([]int, 0)
+
 	for xInt := int64(0); xInt < p.Int64(); xInt++ {
 		x := big.NewInt(xInt)
 
@@ -83,14 +91,22 @@ func ListCurvePoints(a, b, p *big.Int) []Point {
 		y := new(big.Int).ModSqrt(ySquare, p)
 
 		if y != nil {
-			points = append(points, Point{x, y})
+			p_point := Point{x, y}
+			order := p_point.getOrder(p, a)
+
+			points = append(points, p_point)
+			orders = append(orders, order)
 			if y.Uint64() != 0 {
-				points = append(points, Point{x, new(big.Int).Sub(p, y)})
+				p_point = Point{x, new(big.Int).Sub(p, y)}
+				order = p_point.getOrder(p, a)
+
+				points = append(points, p_point)
+				orders = append(orders, order)
 			}
 		}
 	}
 
-	return points
+	return points, orders
 }
 
 func getPoint(x, y int64) Point {
@@ -98,6 +114,31 @@ func getPoint(x, y int64) Point {
 		big.NewInt(x),
 		big.NewInt(y),
 	}
+}
+
+func (p_point *Point) getOrder(p *big.Int, a *big.Int) int {
+	if p_point.x.Cmp(p_point.x) == 0 && p_point.y.Cmp(p_point.y) == 0 && p_point.y.Cmp(big.NewInt(0)) == 0 { // Zero division!!!
+		return 2
+	}
+	r := p_point.Add(p_point, p, a)
+
+	counter := 2
+
+	for {
+		counter += 1
+
+		if r.x.Cmp(p_point.x) == 0 { // Zero division!!!
+			break
+		}
+
+		if r.x.Cmp(p_point.x) == 0 && r.y.Cmp(p_point.y) == 0 && r.y.Cmp(big.NewInt(0)) == 0 { // Zero division!!!
+			break
+		}
+
+		r = r.Add(p_point, p, a)
+	}
+
+	return counter
 }
 
 func main() {
@@ -112,17 +153,28 @@ func main() {
 	b, _ := new(big.Int).SetString(bStr, 10)
 	p, _ := new(big.Int).SetString(pStr, 10)
 
-	points := ListCurvePoints(a, b, p)
+	points, orders := ListCurvePoints(a, b, p)
+
+	// Get biggest
+	biggest := float64(orders[0])
+	for _, e := range orders {
+		biggest = math.Max(float64(biggest), float64(e))
+	}
+
+	fmt.Printf("Ponto(s) com maior(es) ordem(ns): ")
+	for i, e := range orders {
+		if float64(e) == biggest {
+			if i == len(points)-1 {
+				fmt.Printf("%s", points[i])
+			} else {
+				fmt.Printf("%s ", points[i])
+			}
+		}
+	}
+	fmt.Println()
 
 	fmt.Println("Total de pontos: ", len(points))
 	for i, point := range points {
-		fmt.Printf("Point #%d: %s\n", i+1, point)
+		fmt.Printf("Point #%d: %s, order = %d\n", i+1, point, orders[i])
 	}
-
-	p_point := getPoint(3, 10)
-	q := getPoint(9, 7)
-
-	fmt.Printf("%s + %s = ", p_point, q)
-	r := p_point.Add(&q, p, a)
-	fmt.Println(r)
 }
