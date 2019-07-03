@@ -16,12 +16,13 @@ func main() {
 
 	aStr, bStr, pStr := os.Args[1], os.Args[2], os.Args[3]
 
-	a, _ := new(big.Int).SetString(aStr, 10)
-	b, _ := new(big.Int).SetString(bStr, 10)
-	p, _ := new(big.Int).SetString(pStr, 10)
+	curve := &Curve{}
+	curve.a, _ = new(big.Int).SetString(aStr, 10)
+	curve.b, _ = new(big.Int).SetString(bStr, 10)
+	curve.p, _ = new(big.Int).SetString(pStr, 10)
 
-	points, orders := getAllPoints(a, b, p)
-	biggest := getBiggestOrder(a, b, p)
+	points, orders := getAllPoints(curve)
+	biggest := getBiggestOrder(curve)
 
 	fmt.Printf("Ponto(s) com maior(es) ordem(ns): ")
 	for i, e := range orders {
