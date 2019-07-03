@@ -34,87 +34,9 @@ var k = []uint32{
 	0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
 	0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2}
 
-func ch(x, y, z []byte) []byte {
-	newWord := make([]byte, 32)
-	for i := 0; i < 32; i++ {
-		newWord[i] = (x[i] & y[i]) ^ (^x[i] & z[i])
-	}
-	return newWord
-}
-
-func maj(x, y, z []byte) []byte {
-	newWord := make([]byte, 32)
-	for i := 0; i < 32; i++ {
-		newWord[i] = (x[i] & y[i]) ^ (x[i] & z[i]) ^ (y[i] & z[i])
-	}
-	return newWord
-}
-
-func process(block []byte) {
-	for i := 0; i < 80; i++ {
-
-	}
-}
-
-func rotate(word, size uint32) uint32 {
-	return word>>size | word<<(32-size)
-}
-
-func textFromFile(filepath string) [][]uint32 {
-	file, err := ioutil.ReadFile(filepath)
-	if err != nil {
-		panic("Não foi possível ler do arquivo")
-	}
-
-	message := file
-	paddedMessage := message
-
-	paddingLength := 64 - len(message)%64 - 8
-
-	for i := 0; i < paddingLength; i++ {
-		if i == 0 {
-			paddedMessage = append(message, 128)
-		} else {
-			paddedMessage = append(paddedMessage, 0)
-		}
-	}
-
-	messageLength := make([]byte, 8)
-	binary.BigEndian.PutUint64(messageLength, 8*uint64(len(message)))
-	finalMessage := append(paddedMessage, messageLength...)
-
-	var blocks [][]uint32
-	for i := 0; i < len(finalMessage)/64; i++ {
-		var words []uint32
-		for j := 0; j < 64; j++ {
-			if j < 16 {
-				words = append(words, binary.BigEndian.Uint32(finalMessage[(i*64+j*4):(i*64+j*4+4)]))
-			} else {
-				words = append(words, 0)
-			}
-		}
-		blocks = append(blocks, words)
-	}
-
-	return blocks
-}
-
-func xor(wordA, wordB []byte, size uint32) []byte {
-	xoredWord := make([]byte, size)
-
-	for i := uint32(0); i < size; i++ {
-		xoredWord[i] = wordA[i] ^ wordB[i]
-	}
-	return xoredWord
-}
-
-func main() {
-
-	filename := os.Args[1]
-	blocks := textFromFile(filename)
-
+func process(blocks [][]uint32) string {
 	for _, block := range blocks {
-		for i := 16; i < 64; i++ {
+		for i := 16; i < BLOCK_SIZE_BYTES; i++ {
 			s0 := rotate(block[i-15], 7) ^ rotate(block[i-15], 18) ^ (block[i-15] >> 3)
 			s1 := rotate(block[i-2], 17) ^ rotate(block[i-2], 19) ^ (block[i-2] >> 10)
 			block[i] = block[i-16] + s0 + block[i-7] + s1
@@ -129,7 +51,7 @@ func main() {
 		g := (h6)
 		h := (h7)
 
-		for i := 0; i < 64; i++ {
+		for i := 0; i < BLOCK_SIZE_BYTES; i++ {
 			s0 := rotate(uint32(a), 2) ^ rotate(uint32(a), 13) ^ rotate(uint32(a), 22)
 			maj := uint32((a & b) ^ (a & c) ^ (b & c))
 			temp2 := uint32(s0 + maj)
@@ -161,5 +83,58 @@ func main() {
 	for _, h := range hashParts {
 		hash += fmt.Sprintf("%08x", h)
 	}
-	fmt.Println(hash)
+	return hash
+}
+
+func rotate(word, size uint32) uint32 {
+	return word>>size | word<<(32-size)
+}
+
+func textFromFile(filepath string) [][]uint32 {
+	file, err := ioutil.ReadFile(filepath)
+	if err != nil {
+		panic("Não foi possível ler do arquivo")
+	}
+
+	message := file
+	paddedMessage := message
+
+	paddingLength := BLOCK_SIZE_BYTES - len(message)%BLOCK_SIZE_BYTES - BYTE_SIZE_BITS
+
+	for i := 0; i < paddingLength; i++ {
+		if i == 0 {
+			paddedMessage = append(message, 128)
+		} else {
+			paddedMessage = append(paddedMessage, 0)
+		}
+	}
+
+	messageLength := make([]byte, 8)
+	binary.BigEndian.PutUint64(messageLength, 8*uint64(len(message)))
+	finalMessage := append(paddedMessage, messageLength...)
+
+	var blocks [][]uint32
+	for i := 0; i < len(finalMessage)/64; i++ {
+		var words []uint32
+		for j := 0; j < 64; j++ {
+			if j < 16 {
+				words = append(words, binary.BigEndian.Uint32(finalMessage[(i*64+j*4):(i*64+j*4+4)]))
+			} else {
+				words = append(words, 0)
+			}
+		}
+		blocks = append(blocks, words)
+	}
+
+	return blocks
+}
+
+func main() {
+
+	filename := os.Args[1]
+	blocks := textFromFile(filename)
+
+	hash := process(blocks)
+
+	fmt.Printf("SHA256(%s)= %s\n", filename, hash)
 }
