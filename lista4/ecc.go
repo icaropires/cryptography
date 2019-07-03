@@ -11,117 +11,111 @@ type Point struct {
 	y *big.Int
 }
 
-func (p_point Point) String() string {
-	return fmt.Sprintf("(%s, %s)", p_point.x.String(), p_point.y.String())
+func (pPoint Point) String() string {
+	return fmt.Sprintf("(%s, %s)", pPoint.x.String(), pPoint.y.String())
 }
 
-func (p_point *Point) Add(q *Point, a *big.Int, p *big.Int) Point {
-	if p_point.x == q.x && p_point.y == new(big.Int).Neg(q.y) {
-		fmt.Println("Isso aqui vai dar infinito")
-		return Point{}
+func (pPoint *Point) IsEqual(q *Point) bool {
+	return pPoint.x.Cmp(q.x) == 0 && pPoint.y.Cmp(q.y) == 0
+}
+
+func (pPoint *Point) Neg() Point {
+	return Point{pPoint.x, new(big.Int).Neg(pPoint.y)}
+}
+
+func (pPoint *Point) IsAtInfinity() bool {
+	return pPoint.x == nil && pPoint.y == nil
+}
+
+func (pPoint *Point) Add(q *Point, a *big.Int, p *big.Int) *Point {
+	if pPoint.IsAtInfinity() && q.IsAtInfinity() {
+		return &Point{}
 	}
 
-	var lambda *big.Int
-	if p_point.x.Cmp(q.x) == 0 && p_point.y.Cmp(q.y) == 0 {
-		dividendAux := new(big.Int).Exp(p_point.x, big.NewInt(2), nil)
-		dividendAux = new(big.Int).Mul(big.NewInt(3), dividendAux)
+	if pPoint.IsAtInfinity() {
+		return q
+	}
 
-		dividend := new(big.Int).Add(dividendAux, a)
-		dividend = new(big.Int).Mod(dividend, p)
+	if q.IsAtInfinity() {
+		return pPoint
+	}
 
-		divisor := new(big.Int).Mul(big.NewInt(2), p_point.y)
-		divisor = new(big.Int).ModInverse(divisor, p)
+	qNeg := q.Neg()
+	if pPoint.IsEqual(&qNeg) {
+		return &Point{}
+	}
 
-		if divisor == nil {
-			fmt.Println("Zero division! Y is zero")
-			return Point{}
+	lambda := new(big.Int)
+	if pPoint.IsEqual(q) {
+		dividend := new(big.Int).Mul(pPoint.x, pPoint.x)
+		dividend.Mul(dividend, big.NewInt(3))
+		dividend.Add(dividend, a)
+		dividend.Mod(dividend, p)
+
+		divisor := new(big.Int).Mul(big.NewInt(2), pPoint.y)
+		ok := divisor.ModInverse(divisor, p)
+
+		if ok == nil {
+			return &Point{}
 		}
 
-		lambdaAux := new(big.Int).Mul(dividend, divisor)
-		lambda = new(big.Int).Mod(lambdaAux, p)
+		lambda.Mul(dividend, divisor)
+		lambda.Mod(lambda, p)
 	} else {
-		deltaY := new(big.Int).Sub(q.y, p_point.y)
-		deltaX := new(big.Int).Sub(q.x, p_point.x)
+		deltaY := new(big.Int).Sub(q.y, pPoint.y)
+		deltaY.Mod(deltaY, p)
 
-		deltaY = new(big.Int).Mod(deltaY, p)
-		deltaX = new(big.Int).ModInverse(deltaX, p)
+		deltaX := new(big.Int).Sub(q.x, pPoint.x)
+		ok := deltaX.ModInverse(deltaX, p)
 
-		if deltaX == nil {
-			fmt.Println("Zero division!")
-			return Point{}
+		if ok == nil {
+			return &Point{}
 		}
 
-		lambdaAux := new(big.Int).Mul(deltaY, deltaX)
-		lambda = new(big.Int).Mod(lambdaAux, p)
+		lambda = lambda.Mul(deltaY, deltaX)
+		lambda = lambda.Mod(lambda, p)
 	}
 
-	xAux := new(big.Int).Exp(lambda, big.NewInt(2), nil)
-	xAux = new(big.Int).Sub(xAux, p_point.x)
-	xAux = new(big.Int).Sub(xAux, q.x)
-	x := new(big.Int).Mod(xAux, p)
+	x := new(big.Int).Mul(lambda, lambda)
+	x.Sub(x, pPoint.x)
+	x.Sub(x, q.x)
+	x.Mod(x, p)
 
-	yAux := new(big.Int).Mul(lambda, new(big.Int).Sub(p_point.x, x))
-	yAux = new(big.Int).Sub(yAux, p_point.y)
-	y := new(big.Int).Mod(yAux, p)
+	y := new(big.Int).Sub(pPoint.x, x)
+	y.Mul(y, lambda)
+	y.Sub(y, pPoint.y)
+	y.Mod(y, p)
 
-	return Point{x, y}
+	return &Point{x, y}
 }
 
-func (p_point *Point) getOrder(p *big.Int, a *big.Int) int {
-	if p_point.x.Cmp(p_point.x) == 0 && p_point.y.Cmp(p_point.y) == 0 && p_point.y.Cmp(big.NewInt(0)) == 0 { // Zero division!!!
-		return 2
-	}
-	r := p_point.Add(p_point, a, p)
-
+func (pPoint *Point) getOrder(a, p *big.Int) int {
 	counter := 2
+	r := pPoint.Add(pPoint, a, p)
 
-	for {
-		counter += 1
-
-		if r.x.Cmp(p_point.x) == 0 { // Zero division!!!
-			break
-		}
-
-		if r.x.Cmp(p_point.x) == 0 && r.y.Cmp(p_point.y) == 0 && r.y.Cmp(big.NewInt(0)) == 0 { // Zero division!!!
-			break
-		}
-
-		r = r.Add(p_point, a, p)
+	for ; !r.IsAtInfinity(); counter++ {
+		r = r.Add(pPoint, a, p)
 	}
 
 	return counter
 }
 
-func (p_point *Point) Mul(n int, a *big.Int, p *big.Int) Point {
+func (pPoint *Point) Mul(n int, a, p *big.Int) *Point {
 	if n == 1 {
-		return *p_point
+		return pPoint
 	}
 
-	if p_point.x.Cmp(p_point.x) == 0 && p_point.y.Cmp(p_point.y) == 0 && p_point.y.Cmp(big.NewInt(0)) == 0 { // Zero division!!!
-		//fmt.Println("Not Valid multiplication! Y = 0")
-		return *p_point
-	}
-	r := p_point.Add(p_point, a, p)
+	r := pPoint.Add(pPoint, a, p)
 
-	for i := 2; i < n; i++ {
-		if r.x.Cmp(p_point.x) == 0 { // Zero division!!!
-			//fmt.Println("Not Valid multiplication! X = X")
-			break
-		}
-
-		if r.x.Cmp(p_point.x) == 0 && r.y.Cmp(p_point.y) == 0 && r.y.Cmp(big.NewInt(0)) == 0 { // Zero division!!!
-			//fmt.Println("Not Valid multiplication! Next is infinity")
-			break
-		}
-
-		r = r.Add(p_point, a, p)
+	for i := 1; i < n; i++ {
+		r = r.Add(pPoint, a, p)
 	}
 
 	return r
 }
 
 // Returns y^2
-func curve(a, b, x *big.Int) *big.Int {
+func getYSquared(a, b, x *big.Int) *big.Int {
 	aux := new(big.Int).Exp(x, big.NewInt(3), nil)
 
 	aux.Add(aux, new(big.Int).Mul(a, x))
@@ -130,8 +124,8 @@ func curve(a, b, x *big.Int) *big.Int {
 	return aux
 }
 
-func getPoint(x, y int64) Point {
-	return Point{
+func getPoint(x, y int64) *Point {
+	return &Point{
 		big.NewInt(x),
 		big.NewInt(y),
 	}
@@ -151,23 +145,24 @@ func getAllPoints(a, b, p *big.Int) ([]Point, []int) {
 	points := make([]Point, 0)
 	orders := make([]int, 0)
 
-	for xInt := int64(0); xInt < p.Int64(); xInt++ {
+	pInt := p.Int64()
+	for xInt := int64(0); xInt < pInt; xInt++ {
 		x := big.NewInt(xInt)
 
-		ySquare := curve(a, b, x)
-		y := new(big.Int).ModSqrt(ySquare, p)
+		y := getYSquared(a, b, x)
+		y = y.ModSqrt(y, p)
 
 		if y != nil {
-			p_point := Point{x, y}
-			order := p_point.getOrder(p, a)
+			pPoint := Point{x, y}
+			order := pPoint.getOrder(a, p)
 
-			points = append(points, p_point)
+			points = append(points, pPoint)
 			orders = append(orders, order)
 			if y.Uint64() != 0 {
-				p_point = Point{x, new(big.Int).Sub(p, y)}
-				order = p_point.getOrder(p, a)
+				pPoint = Point{x, new(big.Int).Sub(p, y)}
+				order = pPoint.getOrder(a, p)
 
-				points = append(points, p_point)
+				points = append(points, pPoint)
 				orders = append(orders, order)
 			}
 		}

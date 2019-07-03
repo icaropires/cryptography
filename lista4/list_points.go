@@ -21,7 +21,6 @@ func main() {
 	p, _ := new(big.Int).SetString(pStr, 10)
 
 	points, orders := getAllPoints(a, b, p)
-
 	biggest := getBiggestOrder(orders)
 
 	fmt.Printf("Ponto(s) com maior(es) ordem(ns): ")
@@ -36,8 +35,8 @@ func main() {
 	}
 	fmt.Println()
 
-	fmt.Println("Total de pontos: ", len(points), "+ infinito")
+	fmt.Println("Total de pontos: ", len(points), "+ ", "{\u221E}")
 	for i, point := range points {
-		fmt.Printf("Point #%d: %s, order = %d\n", i+1, point, orders[i])
+		fmt.Printf("Point #%2d: %s, order = %2d\n", i+1, point, orders[i])
 	}
 }

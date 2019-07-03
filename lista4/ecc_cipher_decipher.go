@@ -45,21 +45,21 @@ func main() {
 		k++
 	}
 
-	p_point := Point{px, py}
+	pPoint := Point{px, py}
 	aux := publicKey.Mul(k, a, p)
 
-	fmt.Println("Initial Plain Point: ", p_point)
+	fmt.Println("Initial Plain Point: ", pPoint)
 	fmt.Println("G = ", g)
 	fmt.Println("Public key: ", publicKey)
 
 	c1 := g.Mul(k, a, p)
-	c2 := p_point.Add(&aux, a, p)
+	c2 := pPoint.Add(aux, a, p)
 
 	fmt.Println("Cipher point: ", c1, "e", c2)
 
 	aux = c1.Mul(privateKey, a, p)
 	aux.y = new(big.Int).Neg(aux.y)
 
-	plain := c2.Add(&aux, a, p)
+	plain := c2.Add(aux, a, p)
 	fmt.Println("Plain Point: ", plain)
 }
