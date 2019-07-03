@@ -37,7 +37,7 @@ func main() {
 
 	g := Point{gx, gy}
 
-	publicKey := g.Mul(privateKey, a, p)
+	publicKey := g.Mul(privateKey, a, b, p)
 
 	k := rand.Intn(biggest)
 	if k == 0 {
@@ -45,20 +45,19 @@ func main() {
 	}
 
 	pPoint := Point{px, py}
-	aux := publicKey.Mul(k, a, p)
+	aux := publicKey.Mul(k, a, b, p)
 
 	fmt.Println("Initial Plain Point: ", pPoint)
 	fmt.Println("G = ", g)
 	fmt.Println("Public key: ", publicKey)
 
-	c1 := g.Mul(k, a, p)
-	c2 := pPoint.Add(aux, a, p)
+	c1 := g.Mul(k, a, b, p)
+	c2 := pPoint.Add(aux, a, b, p)
 
 	fmt.Println("Cipher point: ", c1, "e", c2)
 
-	aux = c1.Mul(privateKey, a, p)
-	aux.y = new(big.Int).Neg(aux.y)
+	aux = c1.Mul(privateKey, a, b, p)
 
-	plain := c2.Add(aux, a, p)
+	plain := c2.Add(aux, a, b, p)
 	fmt.Println("Plain Point: ", plain)
 }

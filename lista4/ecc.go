@@ -12,6 +12,10 @@ type Point struct {
 }
 
 func (pPoint Point) String() string {
+	if pPoint.IsAtInfinity() {
+		return fmt.Sprint("(\u221E, \u221E)")
+	}
+
 	return fmt.Sprintf("(%s, %s)", pPoint.x.String(), pPoint.y.String())
 }
 
@@ -21,8 +25,12 @@ func (pPoint *Point) IsEqual(q *Point) bool {
 }
 
 // Returns the negative of a pointer pPoint
-func (pPoint *Point) Neg() Point {
-	return Point{pPoint.x, new(big.Int).Neg(pPoint.y)}
+func (pPoint Point) Neg() Point {
+	if !pPoint.IsAtInfinity() {
+		pPoint = Point{new(big.Int).Set(pPoint.x), new(big.Int).Set(pPoint.y)}
+	}
+
+	return Point{new(big.Int).Set(pPoint.x), new(big.Int).Neg(pPoint.y)}
 }
 
 // Returns true if a pPoint is a point at the infinity
@@ -31,7 +39,17 @@ func (pPoint *Point) IsAtInfinity() bool {
 }
 
 // Add a pPoint pPoint to a point q
-func (pPoint *Point) Add(q *Point, a *big.Int, p *big.Int) *Point {
+func (pPoint *Point) Add(q *Point, a *big.Int, b *big.Int, p *big.Int) *Point {
+	if !pPoint.IsOnCurve(a, b, p) {
+		msg := fmt.Sprintf("Point '%v' not in curve: a = %s, b = %s, p = %s", pPoint, a, b, p.String())
+		panic(msg)
+	}
+
+	if !q.IsOnCurve(a, b, p) {
+		msg := fmt.Sprintf("Point '%v' not in curve: a = %s, b = %s, p = %s", p, a.String(), b.String(), p.String())
+		panic(msg)
+	}
+
 	if pPoint.IsAtInfinity() && q.IsAtInfinity() {
 		return &Point{}
 	}
@@ -94,42 +112,77 @@ func (pPoint *Point) Add(q *Point, a *big.Int, p *big.Int) *Point {
 }
 
 // Multiply a point pPoint by n
-func (pPoint *Point) Mul(n int, a, p *big.Int) *Point {
+func (pPoint *Point) Mul(n int, a, b, p *big.Int) *Point {
 	if n == 1 {
 		return pPoint
 	}
 
-	r := pPoint.Add(pPoint, a, p)
-
-	for i := 1; i < n; i++ {
-		r = r.Add(pPoint, a, p)
+	r := pPoint.Add(pPoint, a, b, p)
+	for i := 0; i < n; i++ {
+		r = r.Add(pPoint, a, b, p)
 	}
 
 	return r
 }
 
 // Get the order of a point
-func (pPoint *Point) getOrder(a, p *big.Int) int {
+func (pPoint *Point) getOrder(a, b, p *big.Int) int {
 	counter := 2
-	r := pPoint.Add(pPoint, a, p)
+	r := pPoint.Add(pPoint, a, b, p)
 
 	for ; !r.IsAtInfinity(); counter++ {
-		r = r.Add(pPoint, a, p)
+		r = r.Add(pPoint, a, b, p)
 	}
 
 	return counter
 }
 
-// Returns y^2
-func getYSquared(a, b, x *big.Int) *big.Int {
-	aux := new(big.Int).Exp(x, big.NewInt(3), nil)
+// Returns true if point is on the curve
+func (pPoint *Point) IsOnCurve(a, b, p *big.Int) bool {
+	if pPoint.IsAtInfinity() {
+		return true
+	}
 
-	aux.Add(aux, new(big.Int).Mul(a, x))
-	aux.Add(aux, b)
+	ySquared := new(big.Int).Exp(pPoint.x, big.NewInt(3), nil)
+	ySquared.Add(ySquared, new(big.Int).Mul(a, pPoint.x))
+	ySquared.Add(ySquared, b)
+	ySquared.Mod(ySquared, p)
 
-	return aux
+	ySquaredRight := new(big.Int).Mul(pPoint.y, pPoint.y)
+	ySquaredRight.Mod(ySquaredRight, p)
+
+	return ySquaredRight.Cmp(ySquared) == 0
 }
 
+// Returns true if a group can be based the set E(a, b)
+func isCurveValid(a, b, p *big.Int) bool {
+	firstTerm := new(big.Int).Exp(a, big.NewInt(3), nil)
+	secondTerm := new(big.Int).Mul(b, b)
+
+	firstTerm.Mul(firstTerm, big.NewInt(4))
+	secondTerm.Mul(secondTerm, big.NewInt(27))
+
+	result := new(big.Int).Add(firstTerm, secondTerm)
+	result.Mod(result, p)
+
+	return !(result.Int64() == 0)
+}
+
+// Returns y^2
+func getYSquared(x, a, b, p *big.Int) *big.Int {
+	if !isCurveValid(a, b, p) {
+		panic("Not valid curve, can't compute y squared!")
+	}
+
+	ySquared := new(big.Int).Exp(x, big.NewInt(3), nil)
+
+	ySquared.Add(ySquared, new(big.Int).Mul(a, x))
+	ySquared.Add(ySquared, b)
+
+	return ySquared
+}
+
+// Given coordinates, returns a point
 func getPoint(x, y int64) *Point {
 	return &Point{
 		big.NewInt(x),
@@ -158,18 +211,18 @@ func getAllPoints(a, b, p *big.Int) ([]Point, []int) {
 	for xInt := int64(0); xInt < pInt; xInt++ {
 		x := big.NewInt(xInt)
 
-		y := getYSquared(a, b, x)
+		y := getYSquared(x, a, b, p)
 		y = y.ModSqrt(y, p)
 
 		if y != nil {
 			pPoint := Point{x, y}
-			order := pPoint.getOrder(a, p)
+			order := pPoint.getOrder(a, b, p)
 
 			points = append(points, pPoint)
 			orders = append(orders, order)
 			if y.Uint64() != 0 {
 				pPoint = Point{x, new(big.Int).Sub(p, y)}
-				order = pPoint.getOrder(a, p)
+				order = pPoint.getOrder(a, b, p)
 
 				points = append(points, pPoint)
 				orders = append(orders, order)
