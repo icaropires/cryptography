@@ -1,22 +1,24 @@
 package main
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"os"
 )
 
+var (
+	h0 = uint32(0x6a09e667)
+	h1 = uint32(0xbb67ae85)
+	h2 = uint32(0x3c6ef372)
+	h3 = uint32(0xa54ff53a)
+	h4 = uint32(0x510e527f)
+	h5 = uint32(0x9b05688c)
+	h6 = uint32(0x1f83d9ab)
+	h7 = uint32(0x5be0cd19)
+)
+
 const (
-	h0               = 0x6a09e667
-	h1               = 0xbb67ae85
-	h2               = 0x3c6ef372
-	h3               = 0xa54ff53a
-	h4               = 0x510e527f
-	h5               = 0x9b05688c
-	h6               = 0x1f83d9ab
-	h7               = 0x5be0cd19
 	BYTE_SIZE_BITS   = 8
 	BLOCK_SIZE_BITS  = 512
 	BLOCK_SIZE_BYTES = 64
@@ -64,10 +66,11 @@ func textFromFile(filepath string) [][]uint32 {
 		panic("Não foi possível ler do arquivo")
 	}
 
-	message := bytes.Trim(file, "\n")
+	message := file
 	paddedMessage := message
 
-	paddingLength := 64 - len(message) - 1
+	paddingLength := 64 - len(message)%64 - 8
+
 	for i := 0; i < paddingLength; i++ {
 		if i == 0 {
 			paddedMessage = append(message, 128)
@@ -75,13 +78,20 @@ func textFromFile(filepath string) [][]uint32 {
 			paddedMessage = append(paddedMessage, 0)
 		}
 	}
-	finalMessage := append(paddedMessage, 8*byte(len(message)))
+
+	messageLength := make([]byte, 8)
+	binary.BigEndian.PutUint64(messageLength, 8*uint64(len(message)))
+	finalMessage := append(paddedMessage, messageLength...)
 
 	var blocks [][]uint32
 	for i := 0; i < len(finalMessage)/64; i++ {
 		var words []uint32
 		for j := 0; j < 64; j++ {
-			words = append(words, binary.BigEndian.Uint32(finalMessage[j*4:j*4+4]))
+			if j < 16 {
+				words = append(words, binary.BigEndian.Uint32(finalMessage[(i*64+j*4):(i*64+j*4+4)]))
+			} else {
+				words = append(words, 0)
+			}
 		}
 		blocks = append(blocks, words)
 	}
@@ -110,14 +120,14 @@ func main() {
 			block[i] = block[i-16] + s0 + block[i-7] + s1
 		}
 
-		a := uint32(h0)
-		b := uint32(h1)
-		c := uint32(h2)
-		d := uint32(h3)
-		e := uint32(h4)
-		f := uint32(h5)
-		g := uint32(h6)
-		h := uint32(h7)
+		a := (h0)
+		b := (h1)
+		c := (h2)
+		d := (h3)
+		e := (h4)
+		f := (h5)
+		g := (h6)
+		h := (h7)
 
 		for i := 0; i < 64; i++ {
 			s0 := rotate(uint32(a), 2) ^ rotate(uint32(a), 13) ^ rotate(uint32(a), 22)
@@ -136,21 +146,20 @@ func main() {
 			b = a
 			a = uint32(temp1 + temp2)
 		}
-		h0 := (h0 + a)
-		h1 := (h1 + b)
-		h2 := (h2 + c)
-		h3 := (h3 + d)
-		h4 := (h4 + e)
-		h5 := (h5 + f)
-		h6 := (h6 + g)
-		h7 := (h7 + h)
+		h0 = (h0 + a)
+		h1 = (h1 + b)
+		h2 = (h2 + c)
+		h3 = (h3 + d)
+		h4 = (h4 + e)
+		h5 = (h5 + f)
+		h6 = (h6 + g)
+		h7 = (h7 + h)
 
-		hashParts := []uint32{h0, h1, h2, h3, h4, h5, h6, h7}
-		fmt.Println(hashParts)
-		var hash string
-		for _, h := range hashParts {
-			hash += fmt.Sprintf("%08x", h)
-		}
-		fmt.Println(hash)
 	}
+	hashParts := []uint32{h0, h1, h2, h3, h4, h5, h6, h7}
+	var hash string
+	for _, h := range hashParts {
+		hash += fmt.Sprintf("%08x", h)
+	}
+	fmt.Println(hash)
 }
