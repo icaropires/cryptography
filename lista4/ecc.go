@@ -15,18 +15,22 @@ func (pPoint Point) String() string {
 	return fmt.Sprintf("(%s, %s)", pPoint.x.String(), pPoint.y.String())
 }
 
+// Returns true if a pPoint is equal q
 func (pPoint *Point) IsEqual(q *Point) bool {
 	return pPoint.x.Cmp(q.x) == 0 && pPoint.y.Cmp(q.y) == 0
 }
 
+// Returns the negative of a pointer pPoint
 func (pPoint *Point) Neg() Point {
 	return Point{pPoint.x, new(big.Int).Neg(pPoint.y)}
 }
 
+// Returns true if a pPoint is a point at the infinity
 func (pPoint *Point) IsAtInfinity() bool {
 	return pPoint.x == nil && pPoint.y == nil
 }
 
+// Add a pPoint pPoint to a point q
 func (pPoint *Point) Add(q *Point, a *big.Int, p *big.Int) *Point {
 	if pPoint.IsAtInfinity() && q.IsAtInfinity() {
 		return &Point{}
@@ -89,17 +93,7 @@ func (pPoint *Point) Add(q *Point, a *big.Int, p *big.Int) *Point {
 	return &Point{x, y}
 }
 
-func (pPoint *Point) getOrder(a, p *big.Int) int {
-	counter := 2
-	r := pPoint.Add(pPoint, a, p)
-
-	for ; !r.IsAtInfinity(); counter++ {
-		r = r.Add(pPoint, a, p)
-	}
-
-	return counter
-}
-
+// Multiply a point pPoint by n
 func (pPoint *Point) Mul(n int, a, p *big.Int) *Point {
 	if n == 1 {
 		return pPoint
@@ -112,6 +106,18 @@ func (pPoint *Point) Mul(n int, a, p *big.Int) *Point {
 	}
 
 	return r
+}
+
+// Get the order of a point
+func (pPoint *Point) getOrder(a, p *big.Int) int {
+	counter := 2
+	r := pPoint.Add(pPoint, a, p)
+
+	for ; !r.IsAtInfinity(); counter++ {
+		r = r.Add(pPoint, a, p)
+	}
+
+	return counter
 }
 
 // Returns y^2
@@ -131,7 +137,10 @@ func getPoint(x, y int64) *Point {
 	}
 }
 
-func getBiggestOrder(orders []int) int {
+// Returns the biggest order of all points
+func getBiggestOrder(a, b, p *big.Int) int {
+	_, orders := getAllPoints(a, b, p)
+
 	biggest := float64(orders[0])
 	for _, e := range orders {
 		biggest = math.Max(float64(biggest), float64(e))

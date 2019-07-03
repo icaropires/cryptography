@@ -26,8 +26,7 @@ func main() {
 	px, _ := new(big.Int).SetString(pxStr, 10)
 	py, _ := new(big.Int).SetString(pyStr, 10)
 
-	_, orders := getAllPoints(a, b, p)
-	biggest := getBiggestOrder(orders)
+	biggest := getBiggestOrder(a, b, p)
 
 	rand.Seed(time.Now().UnixNano())
 	privateKey := rand.Intn(biggest)

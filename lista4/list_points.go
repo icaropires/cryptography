@@ -21,7 +21,7 @@ func main() {
 	p, _ := new(big.Int).SetString(pStr, 10)
 
 	points, orders := getAllPoints(a, b, p)
-	biggest := getBiggestOrder(orders)
+	biggest := getBiggestOrder(a, b, p)
 
 	fmt.Printf("Ponto(s) com maior(es) ordem(ns): ")
 	for i, e := range orders {
