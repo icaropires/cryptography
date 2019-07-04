@@ -129,12 +129,11 @@ func textFromFile(filepath string) [][]uint32 {
 	return blocks
 }
 
-func main() {
-
-	filename := os.Args[1]
+func hash(filename string) string {
 	blocks := textFromFile(filename)
 
 	hash := process(blocks)
 
 	fmt.Printf("SHA256(%s)= %s\n", filename, hash)
+	return hash
 }
