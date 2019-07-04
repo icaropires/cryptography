@@ -69,11 +69,6 @@ func readFile(filepath string) []byte {
 	}
 	file = bytes.Trim(file, "\n")
 
-	//for i := 0; i < len(file)%16; i++ {
-	//	file = append(file, ' ')
-	//}
-
-	fmt.Println(file)
 	return file
 }
 
@@ -101,8 +96,6 @@ func main() {
 
 	aStr, bStr, pStr, gxStr, gyStr, filename := os.Args[1], os.Args[2], os.Args[3], os.Args[4], os.Args[5], os.Args[6]
 
-	fmt.Println("ffff", aStr, bStr, pStr)
-
 	curve := &Curve{}
 	curve.a, _ = new(big.Int).SetString(aStr, 10)
 	curve.b, _ = new(big.Int).SetString(bStr, 10)
@@ -119,7 +112,7 @@ func main() {
 	message := readFile(filename)
 
 	for _, char := range message {
-		fmt.Println(mapping(char))
+		mapping(char)
 	}
 
 	r := big.NewInt(0)
@@ -128,23 +121,22 @@ func main() {
 	k := 0
 
 	for s.Uint64() == 0 {
-		fmt.Println("kkkk", k, r)
 		for r.Uint64() == 0 || k == 0 {
 			rand.Seed(time.Now().UnixNano())
-			k = rand.Intn(int(n.Int64()))
+			k = rand.Intn(int(n.Int64()) - 1)
 			pPoint := g.Mul(k, curve)
 			r = new(big.Int).Mod(pPoint.x, n)
 		}
 
 		kBig := big.NewInt(int64(k))
-		//t = new(big.Int).ModInverse(kBig, n)
 
 		e, _ := new(big.Int).SetString(hash(filename), 16)
 
-		numerator := new(big.Int).Add(e, new(big.Int).Mul(big.NewInt(int64(privateKey)), r))
+		z := big.NewInt(e.Int64() >> uint(e.BitLen()-n.BitLen()))
+
+		numerator := new(big.Int).Add(z, new(big.Int).Mul(big.NewInt(int64(privateKey)), r))
 		denominator := new(big.Int).ModInverse(kBig, n)
 
-		//fmt.Println("jajajaj", denominator, numerator, n, kBig)
 		if denominator != nil {
 			denominator.Mod(denominator, n)
 			numerator.Mod(numerator, n)

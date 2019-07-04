@@ -24,17 +24,15 @@ func readFile(filepath string) (string, string) {
 	brPos := strings.IndexByte(string(file), '\n')
 
 	if brPos == -1 {
-		return nil, nil
+		return "", ""
 	}
 
 	line := string(file[:brPos])
-	fmt.Println("Line", line)
 	var r, s string
 	n, err := fmt.Sscanf(line, "signature: %s %s\n", &r, &s)
 	if n == 0 || err != nil {
-		return nil, nil
+		return "", ""
 	}
-	fmt.Println("rs", r, s)
 
 	return r, s
 }
@@ -45,7 +43,7 @@ func main() {
 
 	rStr, sStr := readFile(filename)
 
-	if rStr == nil || sStr == nil {
+	if rStr == "" || sStr == "" {
 		fmt.Println("Assinatura digital inválida")
 		return
 	}
@@ -66,14 +64,14 @@ func main() {
 	publicKey.x, _ = new(big.Int).SetString(pkXStr, 10)
 	publicKey.y, _ = new(big.Int).SetString(pkYStr, 10)
 
-	fmt.Println("----------->", r, s)
-
 	biggest := getBiggestOrder(curve)
 
 	n := big.NewInt(int64(biggest))
 
 	e, _ := new(big.Int).SetString(hash(filename), 16)
-	numerator := new(big.Int).Mod(e, n)
+	z := big.NewInt(e.Int64() >> uint(e.BitLen()-n.BitLen()))
+
+	numerator := new(big.Int).Mod(z, n)
 
 	denominator := new(big.Int).ModInverse(s, n)
 
