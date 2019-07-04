@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"math/rand"
+	"time"
 )
 
 type Point struct {
@@ -118,6 +120,7 @@ func (pPoint *Point) Add(q *Point, curve *Curve) *Point {
 }
 
 // Multiply a point pPoint by n
+// TODO: Use more efficient method
 func (pPoint *Point) Mul(n int, curve *Curve) *Point {
 	if n == 1 {
 		return pPoint
@@ -241,4 +244,42 @@ func getAllPoints(curve *Curve) ([]Point, []int) {
 	}
 
 	return points, orders
+}
+
+func GenKeys(g *Point, curve *Curve) (privateKey uint64, publicKey *Point) {
+	rand.Seed(time.Now().UnixNano())
+
+	biggest := getBiggestOrder(curve)
+	privateKey = uint64(rand.Intn(biggest))
+	if privateKey == 0 {
+		privateKey++
+	}
+
+	publicKey = g.Mul(int(privateKey), curve)
+
+	return
+}
+
+func Cipher(pPoint, publicKey, g *Point, curve *Curve) (c1, c2 *Point) {
+	rand.Seed(time.Now().UnixNano())
+
+	biggest := getBiggestOrder(curve)
+	k := uint64(rand.Intn(biggest))
+	if k == 0 {
+		k++
+	}
+
+	aux := publicKey.Mul(int(k), curve)
+
+	c1 = g.Mul(int(k), curve)
+	c2 = publicKey.Add(aux, curve)
+
+	return
+}
+
+func Decipher(c1, c2 *Point, privateKey uint64, curve *Curve) *Point {
+	aux := c1.Mul(int(privateKey), curve)
+	plain := c2.Add(aux, curve)
+
+	return plain
 }
