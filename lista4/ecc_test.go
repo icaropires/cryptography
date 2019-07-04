@@ -84,3 +84,16 @@ func TestAddEqualYZero(t *testing.T) {
 		t.Errorf("P + P with Py = 0 must be equal Point at Infinity")
 	}
 }
+
+func TestMul(t *testing.T) {
+	curve := &Curve{big.NewInt(0), big.NewInt(-4), big.NewInt(257)}
+	n := 101
+	pPoint := getPoint(2, 2)
+	pPointRight := getPoint(197, 167)
+
+	r := pPoint.Mul(n, curve)
+
+	if !r.IsEqual(pPointRight) {
+		t.Errorf("Wrong multiplication! %v != %v", pPointRight, r)
+	}
+}

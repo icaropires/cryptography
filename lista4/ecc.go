@@ -33,12 +33,12 @@ func (pPoint *Point) IsEqual(q *Point) bool {
 }
 
 // Returns the negative of a pointer pPoint
-func (pPoint Point) Neg() Point {
+func (pPoint Point) Neg() *Point {
 	if !pPoint.IsAtInfinity() {
 		pPoint = Point{new(big.Int).Set(pPoint.x), new(big.Int).Set(pPoint.y)}
 	}
 
-	return Point{new(big.Int).Set(pPoint.x), new(big.Int).Neg(pPoint.y)}
+	return &Point{new(big.Int).Set(pPoint.x), new(big.Int).Neg(pPoint.y)}
 }
 
 // Returns true if a pPoint is a point at the infinity
@@ -71,7 +71,7 @@ func (pPoint *Point) Add(q *Point, curve *Curve) *Point {
 	}
 
 	qNeg := q.Neg()
-	if pPoint.IsEqual(&qNeg) {
+	if pPoint.IsEqual(qNeg) {
 		return &Point{}
 	}
 
@@ -127,7 +127,7 @@ func (pPoint *Point) Mul(n int, curve *Curve) *Point {
 	}
 
 	r := pPoint.Add(pPoint, curve)
-	for i := 0; i < n; i++ {
+	for i := 0; i < n-2; i++ {
 		r = r.Add(pPoint, curve)
 	}
 
@@ -251,6 +251,7 @@ func GenKeys(g *Point, curve *Curve) (privateKey uint64, publicKey *Point) {
 
 	biggest := getBiggestOrder(curve)
 	privateKey = uint64(rand.Intn(biggest))
+	privateKey = 101
 	if privateKey == 0 {
 		privateKey++
 	}
@@ -265,6 +266,7 @@ func Cipher(pPoint, publicKey, g *Point, curve *Curve) (c1, c2 *Point) {
 
 	biggest := getBiggestOrder(curve)
 	k := uint64(rand.Intn(biggest))
+	k = 41
 	if k == 0 {
 		k++
 	}
@@ -272,13 +274,15 @@ func Cipher(pPoint, publicKey, g *Point, curve *Curve) (c1, c2 *Point) {
 	aux := publicKey.Mul(int(k), curve)
 
 	c1 = g.Mul(int(k), curve)
-	c2 = publicKey.Add(aux, curve)
+	c2 = pPoint.Add(aux, curve)
 
 	return
 }
 
 func Decipher(c1, c2 *Point, privateKey uint64, curve *Curve) *Point {
 	aux := c1.Mul(int(privateKey), curve)
+	aux = aux.Neg()
+
 	plain := c2.Add(aux, curve)
 
 	return plain
