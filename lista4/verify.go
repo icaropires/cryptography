@@ -9,12 +9,6 @@ import (
 	"strings"
 )
 
-const (
-	M = 123
-	r = 30
-	p = 4177
-)
-
 func readFile(filepath string) (string, string) {
 	file, err := ioutil.ReadFile(filepath)
 	if err != nil {
@@ -38,13 +32,16 @@ func readFile(filepath string) (string, string) {
 }
 
 func main() {
+	if len(os.Args) < 8 {
+		fmt.Println("Uso incorreto! Exemplo de uso: go run ecc.go sha_256.go veirfy.go [a] [b] [p] [Gx] [Gy] [publicKeyX] [publicKeyY] [filename]")
+		return
+	}
 
 	aStr, bStr, pStr, gxStr, gyStr, pkXStr, pkYStr, filename := os.Args[1], os.Args[2], os.Args[3], os.Args[4], os.Args[5], os.Args[6], os.Args[7], os.Args[8]
 
 	rStr, sStr := readFile(filename)
-
 	if rStr == "" || sStr == "" {
-		fmt.Println("Assinatura digital inválida")
+		fmt.Println("Assinatura digital inválida: format invalid on file")
 		return
 	}
 
@@ -65,39 +62,35 @@ func main() {
 	publicKey.y, _ = new(big.Int).SetString(pkYStr, 10)
 
 	biggest := getBiggestOrder(curve)
-
 	n := big.NewInt(int64(biggest))
 
-	e, _ := new(big.Int).SetString(hash(filename), 16)
-	z := big.NewInt(e.Int64() >> uint(e.BitLen()-n.BitLen()))
-
-	numerator := new(big.Int).Mod(z, n)
-
-	denominator := new(big.Int).ModInverse(s, n)
-
-	if denominator == nil {
-		fmt.Println("Assinatura digital inválida")
+	w := new(big.Int).ModInverse(s, n)
+	if w == nil {
+		fmt.Printf("Assinatura digital inválida: s='%v' e n='%v' não coprimos\n", s, n)
 		return
 	}
 
-	u1 := new(big.Int).Mul(numerator, denominator)
+	z, _ := new(big.Int).SetString(hash(filename), 16)
+	//z := big.NewInt(e.Int64() >> uint(e.BitLen()-n.BitLen())) // Fips 180
 
-	numerator = new(big.Int).Mod(r, n)
-	u2 := new(big.Int).Mul(numerator, denominator)
+	u1 := new(big.Int).Mul(z, w)
+	u1.Mod(u1, n)
 
-	aux := g.Mul(int(u1.Int64()), curve)
+	u2 := new(big.Int).Mul(r, w)
+	u2.Mod(u2, n)
 
+	aux1 := g.Mul(int(u1.Int64()), curve)
 	aux2 := publicKey.Mul(int(u2.Int64()), curve)
 
-	pPoint := aux.Add(aux2, curve)
-
+	pPoint := aux1.Add(aux2, curve)
+	if pPoint.IsAtInfinity() {
+		fmt.Println("Assinatura digital inválida: pPoint infinity")
+	}
 	pPoint.x.Mod(pPoint.x, n)
 
 	if pPoint.x.Cmp(r) == 0 {
 		fmt.Println("Assinatura digital válida")
 	} else {
-		fmt.Println("Assinatura digital inválida")
+		fmt.Printf("Assinatura digital inválida: Px='%v' != r='%v'\n", pPoint.x, r)
 	}
-	fmt.Println(pPoint.x, r)
-
 }

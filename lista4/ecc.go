@@ -287,3 +287,24 @@ func Decipher(c1, c2 *Point, privateKey uint64, curve *Curve) *Point {
 
 	return plain
 }
+
+func MapCharToPoint(message byte) *Point {
+	const (
+		p = 4177
+		r = 30
+	)
+
+	j := int64(0)
+	for {
+		y := big.NewInt(int64(message)*r + j)
+
+		x := new(big.Int).Set(y)
+
+		rr := y.ModSqrt(new(big.Int).Sub(new(big.Int).Exp(y, big.NewInt(3), nil), big.NewInt(4)), big.NewInt(p))
+
+		if rr != nil {
+			return &Point{x, y}
+		}
+		j += 1
+	}
+}

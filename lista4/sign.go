@@ -12,12 +12,6 @@ import (
 	"time"
 )
 
-const (
-	M = 123
-	r = 30
-	p = 4177
-)
-
 func File2lines(filePath string) ([]string, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -72,25 +66,9 @@ func readFile(filepath string) []byte {
 	return file
 }
 
-func mapping(message byte) *Point {
-	j := int64(0)
-	for {
-		y := big.NewInt(int64(message)*r + j)
-
-		x := new(big.Int).Set(y)
-
-		rr := y.ModSqrt(new(big.Int).Sub(new(big.Int).Exp(y, big.NewInt(3), nil), big.NewInt(4)), big.NewInt(4177))
-
-		if rr != nil {
-			return &Point{x, y}
-		}
-		j += 1
-	}
-}
-
 func main() {
 	if len(os.Args) < 6 {
-		fmt.Println("Uso incorreto! Exemplo de uso: ./bin [a] [b] [p] [Gx] [Gy] [filename]")
+		fmt.Println("Uso incorreto! Exemplo de uso: go run ecc.go sha_256.go sign.go [a] [b] [p] [Gx] [Gy] [filename]")
 		return
 	}
 
@@ -106,40 +84,33 @@ func main() {
 	g.y, _ = new(big.Int).SetString(gyStr, 10)
 
 	biggest := getBiggestOrder(curve)
-
 	n := big.NewInt(int64(biggest))
-
-	message := readFile(filename)
-
-	for _, char := range message {
-		mapping(char)
-	}
 
 	r := big.NewInt(0)
 	s := big.NewInt(0)
-	privateKey, publicKey := GenKeys(g, curve)
 	k := 0
+	privateKey, publicKey := GenKeys(g, curve)
 
 	for s.Uint64() == 0 {
 		for r.Uint64() == 0 || k == 0 {
 			rand.Seed(time.Now().UnixNano())
-			k = rand.Intn(int(n.Int64()) - 1)
+			k = rand.Intn(int(n.Int64()) - 2)
+			k += 1
+
 			pPoint := g.Mul(k, curve)
 			r = new(big.Int).Mod(pPoint.x, n)
 		}
 
+		z, _ := new(big.Int).SetString(hash(filename), 16)
+		//z := big.NewInt(e.Int64() >> uint(e.BitLen()-n.BitLen())) // Fips 180
+
+		numerator := new(big.Int).Mul(big.NewInt(int64(privateKey)), r)
+		numerator.Add(numerator, z)
+
 		kBig := big.NewInt(int64(k))
-
-		e, _ := new(big.Int).SetString(hash(filename), 16)
-
-		z := big.NewInt(e.Int64() >> uint(e.BitLen()-n.BitLen()))
-
-		numerator := new(big.Int).Add(z, new(big.Int).Mul(big.NewInt(int64(privateKey)), r))
 		denominator := new(big.Int).ModInverse(kBig, n)
 
 		if denominator != nil {
-			denominator.Mod(denominator, n)
-			numerator.Mod(numerator, n)
 			s = new(big.Int).Mul(numerator, denominator)
 			s.Mod(s, n)
 		} else {
@@ -148,7 +119,6 @@ func main() {
 		}
 	}
 
-	fmt.Println(r, s, n, publicKey)
 	InsertStringToFile(filename, "signature: "+r.String()+" "+s.String()+"\n", 0)
-
+	fmt.Println("File signed, your publicKey is:", publicKey)
 }
