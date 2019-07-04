@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
-	"os"
 )
 
 var (
@@ -134,6 +133,6 @@ func hash(filename string) string {
 
 	hash := process(blocks)
 
-	fmt.Printf("SHA256(%s)= %s\n", filename, hash)
+	//fmt.Printf("SHA256(%s)= %s\n", filename, hash)
 	return hash
 }

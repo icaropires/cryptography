@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -15,6 +17,50 @@ const (
 	r = 30
 	p = 4177
 )
+
+func File2lines(filePath string) ([]string, error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return LinesFromReader(f)
+}
+
+func LinesFromReader(r io.Reader) ([]string, error) {
+	var lines []string
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return lines, nil
+}
+
+/**
+ * Insert sting to n-th line of file.
+ * If you want to insert a line, append newline '\n' to the end of the string.
+ */
+func InsertStringToFile(path, str string, index int) error {
+	lines, err := File2lines(path)
+	if err != nil {
+		return err
+	}
+
+	fileContent := ""
+	for i, line := range lines {
+		if i == index {
+			fileContent += str
+		}
+		fileContent += line
+		fileContent += "\n"
+	}
+
+	return ioutil.WriteFile(path, []byte(fileContent), 0644)
+}
 
 func readFile(filepath string) []byte {
 	file, err := ioutil.ReadFile(filepath)
@@ -48,21 +94,27 @@ func mapping(message byte) *Point {
 }
 
 func main() {
-	if len(os.Args) < 9 {
-		fmt.Println("Uso incorreto! Exemplo de uso: ./bin [a] [b] [p] [Gx] [Gy] [Px] [Py] [filename]")
+	if len(os.Args) < 6 {
+		fmt.Println("Uso incorreto! Exemplo de uso: ./bin [a] [b] [p] [Gx] [Gy] [filename]")
 		return
 	}
 
 	aStr, bStr, pStr, gxStr, gyStr, filename := os.Args[1], os.Args[2], os.Args[3], os.Args[4], os.Args[5], os.Args[6]
 
+	fmt.Println("ffff", aStr, bStr, pStr)
+
 	curve := &Curve{}
 	curve.a, _ = new(big.Int).SetString(aStr, 10)
 	curve.b, _ = new(big.Int).SetString(bStr, 10)
+	curve.p, _ = new(big.Int).SetString(pStr, 10)
 
-	gx, _ := new(big.Int).SetString(gxStr, 10)
-	gy, _ := new(big.Int).SetString(gyStr, 10)
+	g := &Point{}
+	g.x, _ = new(big.Int).SetString(gxStr, 10)
+	g.y, _ = new(big.Int).SetString(gyStr, 10)
 
 	biggest := getBiggestOrder(curve)
+
+	n := big.NewInt(int64(biggest))
 
 	message := readFile(filename)
 
@@ -70,23 +122,41 @@ func main() {
 		fmt.Println(mapping(char))
 	}
 
-	r := &Point{}
-	s := &Point{}
+	r := big.NewInt(0)
+	s := big.NewInt(0)
+	privateKey, publicKey := GenKeys(g, curve)
 	k := 0
 
-	for s.IsAtInfinity() {
-		for r.IsAtInfinity() || k == 0 {
+	for s.Uint64() == 0 {
+		fmt.Println("kkkk", k, r)
+		for r.Uint64() == 0 || k == 0 {
 			rand.Seed(time.Now().UnixNano())
-			k := rand.Intn(biggest)
+			k = rand.Intn(int(n.Int64()))
 			pPoint := g.Mul(k, curve)
-			r := new(big.Int).Mod(pPoint.x, biggest)
+			r = new(big.Int).Mod(pPoint.x, n)
 		}
 
-		kBig := big.NewInt(k)
-		t := new(big.Int).ModInv(kBig, biggest)
+		kBig := big.NewInt(int64(k))
+		//t = new(big.Int).ModInverse(kBig, n)
 
-		e := hash(filename)
+		e, _ := new(big.Int).SetString(hash(filename), 16)
 
+		numerator := new(big.Int).Add(e, new(big.Int).Mul(big.NewInt(int64(privateKey)), r))
+		denominator := new(big.Int).ModInverse(kBig, n)
+
+		//fmt.Println("jajajaj", denominator, numerator, n, kBig)
+		if denominator != nil {
+			denominator.Mod(denominator, n)
+			numerator.Mod(numerator, n)
+			s = new(big.Int).Mul(numerator, denominator)
+			s.Mod(s, n)
+		} else {
+			s = big.NewInt(0)
+			k = 0
+		}
 	}
+
+	fmt.Println(r, s, n, publicKey)
+	InsertStringToFile(filename, "signature: "+r.String()+" "+s.String()+"\n", 0)
 
 }
