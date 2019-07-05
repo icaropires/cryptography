@@ -7,9 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math/big"
-	"math/rand"
 	"os"
-	"time"
 )
 
 func File2lines(filePath string) ([]string, error) {
@@ -67,35 +65,33 @@ func readFile(filepath string) []byte {
 }
 
 func main() {
-	if len(os.Args) < 6 {
-		fmt.Println("Uso incorreto! Exemplo de uso: go run ecc.go sha_256.go sign.go [a] [b] [p] [Gx] [Gy] [filename]")
+	if len(os.Args) < 2 {
+		fmt.Println("Uso incorreto! Exemplo de uso: go run ecc.go sha_256.go sign.go [filename]")
 		return
 	}
 
-	aStr, bStr, pStr, gxStr, gyStr, filename := os.Args[1], os.Args[2], os.Args[3], os.Args[4], os.Args[5], os.Args[6]
+	filename := os.Args[1]
 
+	// Using curve secp256k1
 	curve := &Curve{}
-	curve.a, _ = new(big.Int).SetString(aStr, 10)
-	curve.b, _ = new(big.Int).SetString(bStr, 10)
-	curve.p, _ = new(big.Int).SetString(pStr, 10)
+	curve.a, _ = new(big.Int).SetString("0000000000000000000000000000000000000000000000000000000000000000", 16)
+	curve.b, _ = new(big.Int).SetString("0000000000000000000000000000000000000000000000000000000000000007", 16)
+	curve.p, _ = new(big.Int).SetString("fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f", 16)
+	n, _ := new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
 
 	g := &Point{}
-	g.x, _ = new(big.Int).SetString(gxStr, 10)
-	g.y, _ = new(big.Int).SetString(gyStr, 10)
-
-	biggest := getBiggestOrder(curve)
-	n := big.NewInt(int64(biggest))
+	g.x, _ = new(big.Int).SetString("79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", 16)
+	g.y, _ = new(big.Int).SetString("483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8", 16)
 
 	r := big.NewInt(0)
 	s := big.NewInt(0)
-	k := 0
-	privateKey, publicKey := GenKeys(g, curve)
+	k := big.NewInt(0)
+
+	privateKey, publicKey := GenKeys(g, curve, n)
 
 	for s.Uint64() == 0 {
-		for r.Uint64() == 0 || k == 0 {
-			rand.Seed(time.Now().UnixNano())
-			k = rand.Intn(int(n.Int64()) - 2)
-			k += 1
+		for r.Uint64() == 0 || k.Uint64() == 0 {
+			k = getRandom(n)
 
 			pPoint := g.Mul(k, curve)
 			r = pPoint.x.Mod(pPoint.x, n)
@@ -104,18 +100,17 @@ func main() {
 		e, _ := new(big.Int).SetString(hash(filename), 16)
 		z := e.Rsh(e, uint(e.BitLen()-n.BitLen())) // Fips 180
 
-		numerator := new(big.Int).Mul(big.NewInt(int64(privateKey)), r)
+		numerator := new(big.Int).Mul(privateKey, r)
 		numerator.Add(numerator, z)
 
-		kBig := big.NewInt(int64(k))
-		denominator := new(big.Int).ModInverse(kBig, n)
+		denominator := new(big.Int).ModInverse(k, n)
 
 		if denominator != nil {
 			s = new(big.Int).Mul(numerator, denominator)
 			s.Mod(s, n)
 		} else {
 			s = big.NewInt(0)
-			k = 0
+			k = big.NewInt(0)
 		}
 	}
 

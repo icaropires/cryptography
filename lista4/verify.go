@@ -32,12 +32,18 @@ func readFile(filepath string) (string, string) {
 }
 
 func main() {
-	if len(os.Args) < 8 {
-		fmt.Println("Uso incorreto! Exemplo de uso: go run ecc.go sha_256.go veirfy.go [a] [b] [p] [Gx] [Gy] [publicKeyX] [publicKeyY] [filename]")
+	if len(os.Args) < 4 {
+		fmt.Println("Uso incorreto! Exemplo de uso: go run ecc.go sha_256.go verify.go [publicKeyX] [publicKeyY] [filename]")
 		return
 	}
 
-	aStr, bStr, pStr, gxStr, gyStr, pkXStr, pkYStr, filename := os.Args[1], os.Args[2], os.Args[3], os.Args[4], os.Args[5], os.Args[6], os.Args[7], os.Args[8]
+	pkXStr, pkYStr, filename := os.Args[1], os.Args[2], os.Args[3]
+
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Assinatura digital inválida. Usou a chave pública correta?:", r)
+		}
+	}()
 
 	rStr, sStr := readFile(filename)
 	if rStr == "" || sStr == "" {
@@ -48,21 +54,20 @@ func main() {
 	r, _ := new(big.Int).SetString(rStr, 10)
 	s, _ := new(big.Int).SetString(sStr, 10)
 
+	// Using curve secp256k1
 	curve := &Curve{}
-	curve.a, _ = new(big.Int).SetString(aStr, 10)
-	curve.b, _ = new(big.Int).SetString(bStr, 10)
-	curve.p, _ = new(big.Int).SetString(pStr, 10)
+	curve.a, _ = new(big.Int).SetString("0000000000000000000000000000000000000000000000000000000000000000", 16)
+	curve.b, _ = new(big.Int).SetString("0000000000000000000000000000000000000000000000000000000000000007", 16)
+	curve.p, _ = new(big.Int).SetString("fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f", 16)
+	n, _ := new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
 
 	g := &Point{}
-	g.x, _ = new(big.Int).SetString(gxStr, 10)
-	g.y, _ = new(big.Int).SetString(gyStr, 10)
+	g.x, _ = new(big.Int).SetString("79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", 16)
+	g.y, _ = new(big.Int).SetString("483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8", 16)
 
 	publicKey := &Point{}
 	publicKey.x, _ = new(big.Int).SetString(pkXStr, 10)
 	publicKey.y, _ = new(big.Int).SetString(pkYStr, 10)
-
-	biggest := getBiggestOrder(curve)
-	n := big.NewInt(int64(biggest))
 
 	w := new(big.Int).ModInverse(s, n)
 	if w == nil {
@@ -79,12 +84,13 @@ func main() {
 	u2 := new(big.Int).Mul(r, w)
 	u2.Mod(u2, n)
 
-	aux1 := g.Mul(int(u1.Int64()), curve)
-	aux2 := publicKey.Mul(int(u2.Int64()), curve)
+	aux1 := g.Mul(u1, curve)
+	aux2 := publicKey.Mul(u2, curve)
 
 	pPoint := aux1.Add(aux2, curve)
 	if pPoint.IsAtInfinity() {
 		fmt.Println("Assinatura digital inválida: pPoint infinity")
+		return
 	}
 	pPoint.x.Mod(pPoint.x, n)
 

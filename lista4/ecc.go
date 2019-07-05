@@ -1,11 +1,10 @@
 package main
 
 import (
+	"crypto/rand"
 	"fmt"
 	"math"
 	"math/big"
-	"math/rand"
-	"time"
 )
 
 type Point struct {
@@ -120,14 +119,13 @@ func (pPoint *Point) Add(q *Point, curve *Curve) *Point {
 }
 
 // Multiply a point pPoint by n
-// TODO: Use more efficient method
-func (pPoint *Point) Mul(n int, curve *Curve) *Point {
-	if n == 1 {
+func (pPoint *Point) Mul(n *big.Int, curve *Curve) *Point {
+	if n.Uint64() == 1 {
 		return pPoint
 	}
 
 	r := pPoint.Add(pPoint, curve)
-	for i := 0; i < n-2; i++ {
+	for i := int64(0); i < n.Int64()-2; i++ {
 		r = r.Add(pPoint, curve)
 	}
 
@@ -204,7 +202,7 @@ func getPoint(x, y int64) *Point {
 }
 
 // Returns the biggest order of all points
-func getBiggestOrder(curve *Curve) int {
+func getBiggestOrder(curve *Curve) int64 {
 	_, orders := getAllPoints(curve)
 
 	biggest := float64(orders[0])
@@ -212,7 +210,7 @@ func getBiggestOrder(curve *Curve) int {
 		biggest = math.Max(float64(biggest), float64(e))
 	}
 
-	return int(biggest)
+	return int64(biggest)
 }
 
 // Get all points of a curve with its order
@@ -246,40 +244,39 @@ func getAllPoints(curve *Curve) ([]Point, []int) {
 	return points, orders
 }
 
-func GenKeys(g *Point, curve *Curve) (privateKey uint64, publicKey *Point) {
-	rand.Seed(time.Now().UnixNano())
-
-	biggest := getBiggestOrder(curve)
-	privateKey = uint64(rand.Intn(biggest))
-	privateKey = 101
-	if privateKey == 0 {
-		privateKey++
-	}
-
-	publicKey = g.Mul(int(privateKey), curve)
+// N is the upper value for privateKey
+func GenKeys(g *Point, curve *Curve, n *big.Int) (privateKey *big.Int, publicKey *Point) {
+	privateKey = getRandom(n)
+	publicKey = g.Mul(privateKey, curve)
 
 	return
 }
 
-func Cipher(pPoint, publicKey, g *Point, curve *Curve) (c1, c2 *Point) {
-	rand.Seed(time.Now().UnixNano())
+func getRandom(n *big.Int) *big.Int {
+	zero := big.NewInt(0)
+	random := zero
 
-	biggest := getBiggestOrder(curve)
-	k := uint64(rand.Intn(biggest))
-	if k == 0 {
-		k++
+	for random.Cmp(zero) == 0 {
+		random, _ = rand.Int(rand.Reader, n)
 	}
 
-	aux := publicKey.Mul(int(k), curve)
+	return random
+}
 
-	c1 = g.Mul(int(k), curve)
+func Cipher(pPoint, publicKey, g *Point, curve *Curve) (c1, c2 *Point) {
+	biggest := getBiggestOrder(curve)
+	k := getRandom(big.NewInt(biggest))
+
+	c1 = g.Mul(k, curve)
+
+	aux := publicKey.Mul(k, curve)
 	c2 = pPoint.Add(aux, curve)
 
 	return
 }
 
-func Decipher(c1, c2 *Point, privateKey uint64, curve *Curve) *Point {
-	aux := c1.Mul(int(privateKey), curve)
+func Decipher(c1, c2 *Point, privateKey *big.Int, curve *Curve) *Point {
+	aux := c1.Mul(privateKey, curve)
 	aux = aux.Neg()
 
 	plain := c2.Add(aux, curve)

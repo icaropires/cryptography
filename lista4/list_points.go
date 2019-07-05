@@ -26,7 +26,7 @@ func main() {
 
 	fmt.Printf("Ponto(s) com maior(es) ordem(ns): ")
 	for i, e := range orders {
-		if e == biggest {
+		if e == int(biggest) {
 			if i == len(points)-1 {
 				fmt.Printf("%s", points[i])
 			} else {
