@@ -1,34 +1,28 @@
 package main
 
 import (
-	"bytes"
+	"bufio"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
-	"strings"
 )
 
-func readFile(filepath string) (string, string, string) {
-	file, err := ioutil.ReadFile(filepath)
-	if err != nil {
-		panic("Não foi possível ler do arquivo")
+func readFile(filepath string) (string, string) {
+	file, _ := os.Open(filepath)
+	var lines string
+	scanner := bufio.NewScanner(file)
+	count := 0
+	for scanner.Scan() && count < 3 {
+		lines += scanner.Text() + "\n"
+		count += 1
 	}
-	file = bytes.Trim(file, "\n")
-	brPos := strings.IndexByte(string(file), '\n')
+	var r, s string
+	n, err := fmt.Sscanf(lines, "Signature\nR: %s\nS: %s", &r, &s)
 
-	if brPos == -1 {
-		return "", "", ""
-	}
-
-	line := string(file[:brPos])
-	var r, s, z string
-	n, err := fmt.Sscanf(line, "signature: %s %s %s\n", &r, &s, &z)
 	if n == 0 || err != nil {
-		return "", "", ""
+		return "", ""
 	}
-
-	return r, s, z
+	return r, s
 }
 
 func main() {
@@ -45,17 +39,14 @@ func main() {
 		}
 	}()
 
-	rStr, sStr, zStr := readFile(filename)
-	if rStr == "" || sStr == "" || zStr == "" {
-		fmt.Println("Assinatura digital inválida: format invalid on file")
+	rStr, sStr := readFile(filename)
+	if rStr == "" || sStr == "" {
+		fmt.Println("Assinatura digital inválida: Formato inválido do arquivo")
 		return
 	}
 
 	r, _ := new(big.Int).SetString(rStr, 10)
 	s, _ := new(big.Int).SetString(sStr, 10)
-	z, _ := new(big.Int).SetString(zStr, 10)
-
-	fmt.Println("z =", z)
 
 	// Using curve secp256k1
 	curve := &Curve{}
@@ -77,6 +68,8 @@ func main() {
 		fmt.Printf("Assinatura digital inválida: s='%v' e n='%v' não coprimos\n", s, curve.n)
 		return
 	}
+
+	z, _ := new(big.Int).SetString(hash(filename, 3), 16)
 
 	u1 := new(big.Int).Mul(z, w)
 	u1.Mod(u1, curve.n)

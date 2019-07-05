@@ -1,9 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 var (
@@ -89,13 +90,21 @@ func rotate(word, size uint32) uint32 {
 	return word>>size | word<<(32-size)
 }
 
-func textFromFile(filepath string) [][]uint32 {
-	file, err := ioutil.ReadFile(filepath)
+func textFromFile(filepath string, pos int) [][]uint32 {
+	file, err := os.Open(filepath)
 	if err != nil {
 		panic("Não foi possível ler do arquivo")
 	}
-
-	message := file
+	scanner := bufio.NewScanner(file)
+	lineNumber := 0
+	lines := make([]byte, 0)
+	for scanner.Scan() {
+		if lineNumber >= pos {
+			lines = append(lines, scanner.Bytes()...)
+		}
+		lineNumber += 1
+	}
+	message := lines
 	paddedMessage := message
 
 	paddingLength := BLOCK_SIZE_BYTES - len(message)%BLOCK_SIZE_BYTES - BYTE_SIZE_BITS
@@ -128,8 +137,8 @@ func textFromFile(filepath string) [][]uint32 {
 	return blocks
 }
 
-func hash(filename string) string {
-	blocks := textFromFile(filename)
+func hash(filename string, pos int) string {
+	blocks := textFromFile(filename, pos)
 
 	hash := process(blocks)
 

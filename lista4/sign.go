@@ -88,7 +88,7 @@ func main() {
 	k := big.NewInt(0)
 
 	privateKey, publicKey := GenKeys(g, curve)
-	z, _ := new(big.Int).SetString(hash(filename), 16)
+	z, _ := new(big.Int).SetString(hash(filename, 0), 16)
 	//z := e.Rsh(e, uint(e.BitLen()-curve.n.BitLen())) // FIPS 180
 
 	for s.Uint64() == 0 {
@@ -113,8 +113,7 @@ func main() {
 		}
 	}
 
-	fmt.Println("z =", z)
-	InsertStringToFile(filename, "signature: "+r.String()+" "+s.String()+" "+z.String()+"\n", 0)
-	fmt.Println(r.String(), s.String())
+	signature := fmt.Sprintf("Signature\nR: %v\nS: %v\n", r, s)
+	InsertStringToFile(filename, signature, 0)
 	fmt.Printf("Sua chave pública, para ser usada na verificação, é (X Y):\n%v %v\n", publicKey.x, publicKey.y)
 }
