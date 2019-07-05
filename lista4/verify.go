@@ -33,11 +33,11 @@ func readFile(filepath string) (string, string) {
 
 func main() {
 	if len(os.Args) < 4 {
-		fmt.Println("Uso incorreto! Exemplo de uso: go run ecc.go sha_256.go verify.go [publicKeyX] [publicKeyY] [filename]")
+		fmt.Println("Uso incorreto! Exemplo de uso: go run ecc.go sha_256.go verify.go [filename] [publicKeyX] [publicKeyY]")
 		return
 	}
 
-	pkXStr, pkYStr, filename := os.Args[1], os.Args[2], os.Args[3]
+	filename, pkXStr, pkYStr := os.Args[1], os.Args[2], os.Args[3]
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -59,7 +59,7 @@ func main() {
 	curve.a, _ = new(big.Int).SetString("0000000000000000000000000000000000000000000000000000000000000000", 16)
 	curve.b, _ = new(big.Int).SetString("0000000000000000000000000000000000000000000000000000000000000007", 16)
 	curve.p, _ = new(big.Int).SetString("fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f", 16)
-	n, _ := new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
+	curve.n, _ = new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
 
 	g := &Point{}
 	g.x, _ = new(big.Int).SetString("79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", 16)
@@ -69,20 +69,20 @@ func main() {
 	publicKey.x, _ = new(big.Int).SetString(pkXStr, 10)
 	publicKey.y, _ = new(big.Int).SetString(pkYStr, 10)
 
-	w := new(big.Int).ModInverse(s, n)
+	w := new(big.Int).ModInverse(s, curve.n)
 	if w == nil {
-		fmt.Printf("Assinatura digital inválida: s='%v' e n='%v' não coprimos\n", s, n)
+		fmt.Printf("Assinatura digital inválida: s='%v' e n='%v' não coprimos\n", s, curve.n)
 		return
 	}
 
-	e, _ := new(big.Int).SetString(hash(filename), 16)
-	z := e.Rsh(e, uint(e.BitLen()-n.BitLen())) // Fips 180
+	z, _ := new(big.Int).SetString(hash(filename), 16)
+	//z := e.Rsh(e, uint(e.BitLen()-curve.n.BitLen())) // Fips 180
 
 	u1 := new(big.Int).Mul(z, w)
-	u1.Mod(u1, n)
+	u1.Mod(u1, curve.n)
 
 	u2 := new(big.Int).Mul(r, w)
-	u2.Mod(u2, n)
+	u2.Mod(u2, curve.n)
 
 	aux1 := g.Mul(u1, curve)
 	aux2 := publicKey.Mul(u2, curve)
@@ -92,8 +92,10 @@ func main() {
 		fmt.Println("Assinatura digital inválida: pPoint infinity")
 		return
 	}
-	pPoint.x.Mod(pPoint.x, n)
+	pPoint.x.Mod(pPoint.x, curve.n)
 
+	fmt.Println("n =", curve.n)
+	fmt.Println("px=", pPoint.x)
 	if pPoint.x.Cmp(r) == 0 {
 		fmt.Println("Assinatura digital válida")
 	} else {

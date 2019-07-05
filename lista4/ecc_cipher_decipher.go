@@ -20,6 +20,7 @@ func main() {
 	curve.a, _ = new(big.Int).SetString(aStr, 10)
 	curve.b, _ = new(big.Int).SetString(bStr, 10)
 	curve.p, _ = new(big.Int).SetString(pStr, 10)
+	curve.n = big.NewInt(getBiggestOrder(curve))
 
 	g := &Point{}
 	g.x, _ = new(big.Int).SetString(gxStr, 10)

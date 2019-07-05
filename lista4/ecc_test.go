@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 )
@@ -14,7 +15,7 @@ func TestIsAtInfinity(t *testing.T) {
 }
 
 func TestAddInverse(t *testing.T) {
-	curve := &Curve{big.NewInt(1), big.NewInt(1), big.NewInt(23)}
+	curve := &Curve{big.NewInt(1), big.NewInt(1), big.NewInt(23), big.NewInt(28)}
 
 	pPoint := getPoint(3, 13)
 	q := getPoint(3, -13)
@@ -26,7 +27,7 @@ func TestAddInverse(t *testing.T) {
 }
 
 func TestAddPInfinity(t *testing.T) {
-	curve := &Curve{big.NewInt(1), big.NewInt(1), big.NewInt(23)}
+	curve := &Curve{big.NewInt(1), big.NewInt(1), big.NewInt(23), big.NewInt(28)}
 
 	pPoint := &Point{}
 	q := getPoint(3, -13)
@@ -38,7 +39,7 @@ func TestAddPInfinity(t *testing.T) {
 }
 
 func TestAddQInfinity(t *testing.T) {
-	curve := &Curve{big.NewInt(1), big.NewInt(1), big.NewInt(23)}
+	curve := &Curve{big.NewInt(1), big.NewInt(1), big.NewInt(23), big.NewInt(28)}
 
 	pPoint := getPoint(3, -13)
 	q := &Point{}
@@ -50,7 +51,7 @@ func TestAddQInfinity(t *testing.T) {
 }
 
 func TestAddAllInfinity(t *testing.T) {
-	curve := &Curve{big.NewInt(1), big.NewInt(1), big.NewInt(23)}
+	curve := &Curve{big.NewInt(1), big.NewInt(1), big.NewInt(23), big.NewInt(28)}
 
 	pPoint := &Point{}
 	q := &Point{}
@@ -62,7 +63,7 @@ func TestAddAllInfinity(t *testing.T) {
 }
 
 func TestAddPxEqualQx(t *testing.T) {
-	curve := &Curve{big.NewInt(1), big.NewInt(1), big.NewInt(23)}
+	curve := &Curve{big.NewInt(1), big.NewInt(1), big.NewInt(23), big.NewInt(28)}
 
 	pPoint := getPoint(11, 3)
 	q := getPoint(11, 20)
@@ -74,7 +75,7 @@ func TestAddPxEqualQx(t *testing.T) {
 }
 
 func TestAddEqualYZero(t *testing.T) {
-	curve := &Curve{big.NewInt(1), big.NewInt(1), big.NewInt(23)}
+	curve := &Curve{big.NewInt(1), big.NewInt(1), big.NewInt(23), big.NewInt(28)}
 
 	pPoint := getPoint(4, 0)
 	q := getPoint(4, 0)
@@ -86,8 +87,12 @@ func TestAddEqualYZero(t *testing.T) {
 }
 
 func TestMul(t *testing.T) {
-	curve := &Curve{big.NewInt(0), big.NewInt(-4), big.NewInt(257)}
-	n := 101
+	fmt.Println("=========================================================")
+	fmt.Println("=========================================================")
+	fmt.Println("=========================================================")
+	fmt.Println("=========================================================")
+	curve := &Curve{big.NewInt(0), big.NewInt(-4), big.NewInt(257), big.NewInt(258)}
+	n := big.NewInt(101)
 	pPoint := getPoint(2, 2)
 	pPointRight := getPoint(197, 167)
 

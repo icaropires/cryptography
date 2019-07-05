@@ -16,6 +16,7 @@ type Curve struct {
 	a *big.Int
 	b *big.Int
 	p *big.Int
+	n *big.Int
 }
 
 func (pPoint Point) String() string {
@@ -28,16 +29,24 @@ func (pPoint Point) String() string {
 
 // Returns true if a pPoint is equal q
 func (pPoint *Point) IsEqual(q *Point) bool {
+	if pPoint.IsAtInfinity() && q.IsAtInfinity() {
+		return true
+	}
+
+	if pPoint.IsAtInfinity() || q.IsAtInfinity() {
+		return false
+	}
+
 	return pPoint.x.Cmp(q.x) == 0 && pPoint.y.Cmp(q.y) == 0
 }
 
 // Returns the negative of a pointer pPoint
 func (pPoint Point) Neg() *Point {
 	if !pPoint.IsAtInfinity() {
-		pPoint = Point{new(big.Int).Set(pPoint.x), new(big.Int).Set(pPoint.y)}
+		return &Point{new(big.Int).Set(pPoint.x), new(big.Int).Neg(pPoint.y)}
 	}
 
-	return &Point{new(big.Int).Set(pPoint.x), new(big.Int).Neg(pPoint.y)}
+	return &Point{}
 }
 
 // Returns true if a pPoint is a point at the infinity
@@ -118,18 +127,30 @@ func (pPoint *Point) Add(q *Point, curve *Curve) *Point {
 	return &Point{x, y}
 }
 
-// Multiply a point pPoint by n
-func (pPoint *Point) Mul(n *big.Int, curve *Curve) *Point {
-	if n.Uint64() == 1 {
-		return pPoint
+// Multiply a point pPoint by k
+func (pPoint *Point) Mul(k *big.Int, curve *Curve) *Point {
+	if new(big.Int).Mod(k, curve.n).Cmp(big.NewInt(0)) == 0 || pPoint.IsAtInfinity() {
+		return &Point{}
 	}
 
-	r := pPoint.Add(pPoint, curve)
-	for i := int64(0); i < n.Int64()-2; i++ {
-		r = r.Add(pPoint, curve)
+	if k.Sign() == -1 {
+		return pPoint.Mul(new(big.Int).Neg(k), curve)
 	}
 
-	return r
+	result := &Point{}
+	addend := pPoint
+
+	kCopy := new(big.Int).Set(k)
+	for kCopy.Sign() != 0 {
+		if kCopy.Bit(0) == 1 {
+			result = result.Add(addend, curve)
+		}
+
+		addend = addend.Add(addend, curve)
+		kCopy.Rsh(kCopy, 1)
+	}
+
+	return result
 }
 
 // Get the order of a point
@@ -162,7 +183,7 @@ func (pPoint *Point) IsOnCurve(curve *Curve) bool {
 }
 
 func (curve *Curve) String() string {
-	return fmt.Sprintf("Curve(%s, %s, %s)", curve.a.String(), curve.b.String(), curve.p.String())
+	return fmt.Sprintf("Curve(%v, %v, %v, %v)", curve.a, curve.b, curve.p, curve.n)
 }
 
 // Returns true if a group can be based the set E(a, b)
@@ -245,8 +266,8 @@ func getAllPoints(curve *Curve) ([]Point, []int) {
 }
 
 // N is the upper value for privateKey
-func GenKeys(g *Point, curve *Curve, n *big.Int) (privateKey *big.Int, publicKey *Point) {
-	privateKey = getRandom(n)
+func GenKeys(g *Point, curve *Curve) (privateKey *big.Int, publicKey *Point) {
+	privateKey = getRandom(curve.n)
 	publicKey = g.Mul(privateKey, curve)
 
 	return
@@ -284,23 +305,23 @@ func Decipher(c1, c2 *Point, privateKey *big.Int, curve *Curve) *Point {
 	return plain
 }
 
-func MapCharToPoint(message byte) *Point {
-	const (
-		p = 4177
-		r = 30
-	)
-
-	j := int64(0)
-	for {
-		y := big.NewInt(int64(message)*r + j)
-
-		x := new(big.Int).Set(y)
-
-		rr := y.ModSqrt(new(big.Int).Sub(new(big.Int).Exp(y, big.NewInt(3), nil), big.NewInt(4)), big.NewInt(p))
-
-		if rr != nil {
-			return &Point{x, y}
-		}
-		j += 1
-	}
-}
+// func MapCharToPoint(message byte) *Point {
+// 	const (
+// 		p = 4177
+// 		r = 30
+// 	)
+//
+// 	j := int64(0)
+// 	for {
+// 		y := big.NewInt(int64(message)*r + j)
+//
+// 		x := new(big.Int).Set(y)
+//
+// 		rr := y.ModSqrt(new(big.Int).Sub(new(big.Int).Exp(y, big.NewInt(3), nil), big.NewInt(4)), big.NewInt(p))
+//
+// 		if rr != nil {
+// 			return &Point{x, y}
+// 		}
+// 		j += 1
+// 	}
+// }

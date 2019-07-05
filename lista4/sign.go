@@ -77,7 +77,7 @@ func main() {
 	curve.a, _ = new(big.Int).SetString("0000000000000000000000000000000000000000000000000000000000000000", 16)
 	curve.b, _ = new(big.Int).SetString("0000000000000000000000000000000000000000000000000000000000000007", 16)
 	curve.p, _ = new(big.Int).SetString("fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f", 16)
-	n, _ := new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
+	curve.n, _ = new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
 
 	g := &Point{}
 	g.x, _ = new(big.Int).SetString("79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", 16)
@@ -87,27 +87,26 @@ func main() {
 	s := big.NewInt(0)
 	k := big.NewInt(0)
 
-	privateKey, publicKey := GenKeys(g, curve, n)
+	privateKey, publicKey := GenKeys(g, curve)
+	z, _ := new(big.Int).SetString(hash(filename), 16)
+	//z := e.Rsh(e, uint(e.BitLen()-curve.n.BitLen())) // FIPS 180
 
 	for s.Uint64() == 0 {
 		for r.Uint64() == 0 || k.Uint64() == 0 {
-			k = getRandom(n)
+			k = getRandom(curve.n)
 
 			pPoint := g.Mul(k, curve)
-			r = pPoint.x.Mod(pPoint.x, n)
+			r = pPoint.x.Mod(pPoint.x, curve.n)
 		}
-
-		e, _ := new(big.Int).SetString(hash(filename), 16)
-		z := e.Rsh(e, uint(e.BitLen()-n.BitLen())) // Fips 180
 
 		numerator := new(big.Int).Mul(privateKey, r)
 		numerator.Add(numerator, z)
 
-		denominator := new(big.Int).ModInverse(k, n)
+		denominator := new(big.Int).ModInverse(k, curve.n)
 
 		if denominator != nil {
 			s = new(big.Int).Mul(numerator, denominator)
-			s.Mod(s, n)
+			s.Mod(s, curve.n)
 		} else {
 			s = big.NewInt(0)
 			k = big.NewInt(0)
@@ -115,5 +114,5 @@ func main() {
 	}
 
 	InsertStringToFile(filename, "signature: "+r.String()+" "+s.String()+"\n", 0)
-	fmt.Println("File signed, your publicKey is:", publicKey)
+	fmt.Printf("Sua chave pública, para ser usada na verificação, é (X Y):\n%v %v\n", publicKey.x, publicKey.y)
 }
