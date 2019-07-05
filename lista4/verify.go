@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func readFile(filepath string) (string, string) {
+func readFile(filepath string) (string, string, string) {
 	file, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		panic("Não foi possível ler do arquivo")
@@ -18,17 +18,17 @@ func readFile(filepath string) (string, string) {
 	brPos := strings.IndexByte(string(file), '\n')
 
 	if brPos == -1 {
-		return "", ""
+		return "", "", ""
 	}
 
 	line := string(file[:brPos])
-	var r, s string
-	n, err := fmt.Sscanf(line, "signature: %s %s\n", &r, &s)
+	var r, s, z string
+	n, err := fmt.Sscanf(line, "signature: %s %s %s\n", &r, &s, &z)
 	if n == 0 || err != nil {
-		return "", ""
+		return "", "", ""
 	}
 
-	return r, s
+	return r, s, z
 }
 
 func main() {
@@ -45,14 +45,17 @@ func main() {
 		}
 	}()
 
-	rStr, sStr := readFile(filename)
-	if rStr == "" || sStr == "" {
+	rStr, sStr, zStr := readFile(filename)
+	if rStr == "" || sStr == "" || zStr == "" {
 		fmt.Println("Assinatura digital inválida: format invalid on file")
 		return
 	}
 
 	r, _ := new(big.Int).SetString(rStr, 10)
 	s, _ := new(big.Int).SetString(sStr, 10)
+	z, _ := new(big.Int).SetString(zStr, 10)
+
+	fmt.Println("z =", z)
 
 	// Using curve secp256k1
 	curve := &Curve{}
@@ -75,9 +78,6 @@ func main() {
 		return
 	}
 
-	z, _ := new(big.Int).SetString(hash(filename), 16)
-	//z := e.Rsh(e, uint(e.BitLen()-curve.n.BitLen())) // Fips 180
-
 	u1 := new(big.Int).Mul(z, w)
 	u1.Mod(u1, curve.n)
 
@@ -94,8 +94,6 @@ func main() {
 	}
 	pPoint.x.Mod(pPoint.x, curve.n)
 
-	fmt.Println("n =", curve.n)
-	fmt.Println("px=", pPoint.x)
 	if pPoint.x.Cmp(r) == 0 {
 		fmt.Println("Assinatura digital válida")
 	} else {

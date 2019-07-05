@@ -113,6 +113,8 @@ func main() {
 		}
 	}
 
-	InsertStringToFile(filename, "signature: "+r.String()+" "+s.String()+"\n", 0)
+	fmt.Println("z =", z)
+	InsertStringToFile(filename, "signature: "+r.String()+" "+s.String()+" "+z.String()+"\n", 0)
+	fmt.Println(r.String(), s.String())
 	fmt.Printf("Sua chave pública, para ser usada na verificação, é (X Y):\n%v %v\n", publicKey.x, publicKey.y)
 }
