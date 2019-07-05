@@ -266,7 +266,6 @@ func Cipher(pPoint, publicKey, g *Point, curve *Curve) (c1, c2 *Point) {
 
 	biggest := getBiggestOrder(curve)
 	k := uint64(rand.Intn(biggest))
-	k = 41
 	if k == 0 {
 		k++
 	}

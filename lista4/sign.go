@@ -98,11 +98,11 @@ func main() {
 			k += 1
 
 			pPoint := g.Mul(k, curve)
-			r = new(big.Int).Mod(pPoint.x, n)
+			r = pPoint.x.Mod(pPoint.x, n)
 		}
 
-		z, _ := new(big.Int).SetString(hash(filename), 16)
-		//z := big.NewInt(e.Int64() >> uint(e.BitLen()-n.BitLen())) // Fips 180
+		e, _ := new(big.Int).SetString(hash(filename), 16)
+		z := e.Rsh(e, uint(e.BitLen()-n.BitLen())) // Fips 180
 
 		numerator := new(big.Int).Mul(big.NewInt(int64(privateKey)), r)
 		numerator.Add(numerator, z)

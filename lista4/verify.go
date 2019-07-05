@@ -70,8 +70,8 @@ func main() {
 		return
 	}
 
-	z, _ := new(big.Int).SetString(hash(filename), 16)
-	//z := big.NewInt(e.Int64() >> uint(e.BitLen()-n.BitLen())) // Fips 180
+	e, _ := new(big.Int).SetString(hash(filename), 16)
+	z := e.Rsh(e, uint(e.BitLen()-n.BitLen())) // Fips 180
 
 	u1 := new(big.Int).Mul(z, w)
 	u1.Mod(u1, n)
